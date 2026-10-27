@@ -165,6 +165,8 @@ src-tauri/target/
 src-tauri/gen/
 *.local
 .DS_Store
+.worktrees/
+.superpowers/
 ```
 
 Set `<html lang="zh-CN">` and `<title>Privault — 本地隐私保险库 UI 原型</title>` in `index.html`.
