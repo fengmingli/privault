@@ -1,32 +1,63 @@
-# React + TypeScript + Vite
+# Privault 前端 UI 原型
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+Privault 是面向 Mac 与 Windows 的完全离线个人保险库。本仓库当前仅包含**前端 UI 原型**，用于确认界面与交互，不具备保存真实隐私数据的安全能力。
 
-Currently, two official plugins are available:
+> UI 原型，请勿输入真实密码。
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## 已实现
 
-## React Compiler
+- 欢迎、创建演示保险库、恢复密钥、解锁与恢复访问流程
+- 三栏桌面工作区：分类、搜索、详情、密码显隐与复制
+- 登录信息、安全笔记、银行卡、证件和自定义字段
+- 新增、编辑、删除、撤销、收藏及未保存修改保护
+- 本地密码生成器及填入编辑表单
+- 浅色、深色、跟随系统主题
+- 自动锁定、快捷键及原生能力说明
+- 仅含 `core:default` 权限的 Tauri 2 窗口配置
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+所有条目均为虚构数据，只保留在内存中，刷新后复位。仅主题、自动锁定时间和剪贴板倒计时偏好会持久化，不保存密码、恢复密钥、条目或搜索词。应用不加载远程资源。
 
-## Expanding the Oxlint configuration
+## 运行 UI
 
-If you are developing a production application, we recommend enabling type-aware lint rules by installing `oxlint-tsgolint` and editing `.oxlintrc.json`:
+要求：Node.js 24+ 与 npm。
 
-```json
-{
-  "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["react", "typescript", "oxc"],
-  "options": {
-    "typeAware": true
-  },
-  "rules": {
-    "react/rules-of-hooks": "error",
-    "react/only-export-components": ["warn", { "allowConstantExport": true }]
-  }
-}
+```bash
+npm install
+npm run dev
 ```
 
-See the [Oxlint rules documentation](https://oxc.rs/docs/guide/usage/linter/rules) for the full list of rules and categories.
+打开 `http://127.0.0.1:1420`。
+
+- 演示解锁密码：`demo`
+- 演示恢复密钥：`DEMO-4C7Q-9M2X-6K8P`
+
+## 验证
+
+```bash
+npm run lint
+npm test
+npm run build
+npm run test:e2e
+```
+
+端到端测试使用本机 Chrome（Playwright `channel: "chrome"`），不需要下载浏览器。测试覆盖主要交互、外部请求审计、浅色/深色截图和 1024×700 布局。
+
+## Tauri 桌面壳
+
+`src-tauri/` 已包含最小 Tauri 2 配置，没有 HTTP、文件系统、更新器或 shell 插件。构建桌面壳需要额外安装 Rust 工具链：
+
+```bash
+npm run tauri dev
+npm run tauri build
+```
+
+当前环境未安装 Rust，因此桌面二进制构建尚未验证。前端生产构建和 Chrome 端到端测试可独立验证。
+
+## 尚未接入
+
+- Argon2id、SQLCipher 与真实密钥管理
+- 真实保险库读写、加密备份与迁移
+- 原生剪贴板定时清理、系统休眠锁定
+- Mac / Windows 安装包与平台签名
+
+这些能力需要独立的 Rust 安全核心设计与验证，不能把当前原型用于真实账号密码。
