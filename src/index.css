@@ -118,3 +118,22 @@
     font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
   }
 }
+
+@media print {
+  body * {
+    visibility: hidden;
+  }
+
+  [data-print-recovery],
+  [data-print-recovery] * {
+    visibility: visible;
+  }
+
+  [data-print-recovery] {
+    position: absolute;
+    inset: 0;
+    border: 0;
+    background: white;
+    color: black;
+  }
+}
