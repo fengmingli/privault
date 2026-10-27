@@ -10,10 +10,11 @@ type AccessScreen = "welcome" | "unlock" | "create" | "recover";
 
 interface AccessFlowProps {
   onUnlocked: () => void;
+  initialScreen?: AccessScreen;
 }
 
-export function AccessFlow({ onUnlocked }: AccessFlowProps) {
-  const [screen, setScreen] = useState<AccessScreen>("welcome");
+export function AccessFlow({ onUnlocked, initialScreen = "welcome" }: AccessFlowProps) {
+  const [screen, setScreen] = useState<AccessScreen>(initialScreen);
   const [importNotice, setImportNotice] = useState(false);
   const [recoveryNotice, setRecoveryNotice] = useState(false);
 

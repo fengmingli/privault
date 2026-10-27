@@ -24,7 +24,7 @@ test("main workflow stays on local assets", async ({ page }) => {
   await page.getByRole("button", { name: "复制密码" }).click();
   await expect(page.getByText("密码已复制")).toBeVisible();
   await page.getByRole("button", { name: "立即锁定" }).click();
-  await expect(page.getByRole("button", { name: "解锁演示保险库" })).toBeVisible();
+  await expect(page.getByLabel("演示密码")).toBeVisible();
   expect(externalRequests).toEqual([]);
 });
 

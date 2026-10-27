@@ -44,6 +44,17 @@ describe("App access flows", () => {
     expect(screen.getByRole("heading", { name: "演示保险库" })).toBeInTheDocument();
   });
 
+  it("returns to the unlock screen after manually locking an unlocked vault", async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    await user.click(screen.getByRole("button", { name: "解锁演示保险库" }));
+    await user.type(screen.getByLabelText("演示密码"), "demo");
+    await user.click(screen.getByRole("button", { name: /^解锁$/ }));
+    await user.click(screen.getByRole("button", { name: "立即锁定" }));
+    expect(screen.getByLabelText("演示密码")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "解锁演示保险库" })).not.toBeInTheDocument();
+  });
+
   it("explains import without selecting or writing files", async () => {
     const user = userEvent.setup();
     render(<App />);

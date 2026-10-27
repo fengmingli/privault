@@ -127,6 +127,7 @@ describe("VaultWorkspace", () => {
     await user.click(screen.getByRole("button", { name: "关闭对话框" }));
     await user.click(screen.getByRole("button", { name: "放弃修改" }));
     expect(screen.queryByRole("dialog", { name: "编辑项目" })).not.toBeInTheDocument();
+    expect(screen.queryByDisplayValue("未保存的演示修改")).not.toBeInTheDocument();
   });
 
   it("deletes and undoes deletion of an entry", async () => {
