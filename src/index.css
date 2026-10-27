@@ -1,0 +1,120 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 40 20% 98%;
+    --surface: 0 0% 100%;
+    --surface-raised: 0 0% 100%;
+    --foreground: 180 10% 12%;
+    --foreground-muted: 180 5% 36%;
+    --border: 40 8% 84%;
+    --input: 40 8% 80%;
+    --primary: 176 72% 25%;
+    --primary-foreground: 0 0% 100%;
+    --primary-hover: 176 76% 20%;
+    --accent: 168 30% 92%;
+    --accent-foreground: 176 65% 18%;
+    --muted: 40 12% 94%;
+    --warning: 38 92% 42%;
+    --warning-foreground: 30 90% 14%;
+    --danger: 0 68% 42%;
+    --danger-foreground: 0 0% 100%;
+    --focus-ring: 176 72% 32%;
+    --selection: 170 40% 84%;
+    --radius: 0.625rem;
+    color-scheme: light;
+  }
+
+  .dark {
+    --background: 180 12% 8%;
+    --surface: 180 10% 11%;
+    --surface-raised: 180 9% 14%;
+    --foreground: 40 20% 94%;
+    --foreground-muted: 40 6% 68%;
+    --border: 180 7% 23%;
+    --input: 180 7% 30%;
+    --primary: 168 55% 52%;
+    --primary-foreground: 176 70% 10%;
+    --primary-hover: 168 60% 60%;
+    --accent: 176 25% 18%;
+    --accent-foreground: 168 55% 75%;
+    --muted: 180 8% 16%;
+    --warning: 38 90% 60%;
+    --warning-foreground: 30 90% 10%;
+    --danger: 0 68% 48%;
+    --danger-foreground: 0 0% 100%;
+    --focus-ring: 168 60% 60%;
+    --selection: 176 35% 27%;
+    color-scheme: dark;
+  }
+
+  * {
+    @apply border-border;
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--border)) transparent;
+  }
+
+  html,
+  body,
+  #root {
+    @apply h-full min-h-full;
+  }
+
+  html {
+    @apply bg-background;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+    text-rendering: optimizeLegibility;
+  }
+
+  body {
+    @apply m-0 bg-background text-foreground antialiased;
+  }
+
+  button,
+  input,
+  textarea,
+  select {
+    font: inherit;
+  }
+
+  button:not(:disabled) {
+    cursor: pointer;
+  }
+
+  ::selection {
+    background: hsl(var(--selection));
+    color: hsl(var(--foreground));
+  }
+
+  :focus-visible {
+    outline: 2px solid hsl(var(--focus-ring));
+    outline-offset: 2px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      scroll-behavior: auto !important;
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}
+
+@layer components {
+  .control {
+    @apply flex h-10 w-full rounded-md border border-input bg-surface px-3 text-sm text-foreground shadow-sm transition-colors placeholder:text-foreground-muted/70 hover:border-foreground-muted/60 focus:border-primary focus:outline-none focus:ring-2 focus:ring-ring/20 disabled:cursor-not-allowed disabled:opacity-50;
+  }
+
+  textarea.control {
+    @apply h-auto min-h-24 resize-y py-2;
+  }
+
+  .mono {
+    font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+  }
+}
