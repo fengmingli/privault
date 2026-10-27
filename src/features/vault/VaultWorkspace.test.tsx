@@ -1,6 +1,7 @@
-import { render, screen, within } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { DEFAULT_SETTINGS } from "@/lib/settings";
 import { copyText } from "@/lib/clipboard";
 import type { VaultEntry } from "@/types/vault";
 import { VaultWorkspace } from "./VaultWorkspace";
@@ -160,5 +161,37 @@ describe("VaultWorkspace", () => {
     const generated = within(generator).getByLabelText("生成的密码").textContent;
     await user.click(within(generator).getByRole("button", { name: "填入密码" }));
     expect(screen.getByLabelText("密码")).toHaveValue(generated);
+  });
+
+  it("opens settings and explains unavailable export without writing files", async () => {
+    const user = userEvent.setup();
+    const onSettingsChange = vi.fn();
+    render(<VaultWorkspace onLock={vi.fn()} settings={DEFAULT_SETTINGS} onSettingsChange={onSettingsChange} />);
+    await user.click(screen.getByRole("button", { name: "设置" }));
+    await user.click(screen.getByLabelText("深色"));
+    expect(onSettingsChange).toHaveBeenCalledWith({ theme: "dark" });
+    await user.click(screen.getByRole("button", { name: "导出保险库" }));
+    expect(screen.getByText("导出功能尚未接入安全核心，不会创建或写入任何文件。")).toBeInTheDocument();
+  });
+
+  it("supports search, new-entry, and lock keyboard shortcuts", () => {
+    const onLock = vi.fn();
+    render(<VaultWorkspace onLock={onLock} settings={DEFAULT_SETTINGS} onSettingsChange={vi.fn()} />);
+    fireEvent.keyDown(window, { key: "k", ctrlKey: true });
+    expect(screen.getByLabelText("搜索项目")).toHaveFocus();
+    fireEvent.keyDown(window, { key: "n", ctrlKey: true });
+    expect(screen.getByRole("dialog", { name: "选择条目类型" })).toBeInTheDocument();
+    fireEvent.keyDown(window, { key: "l", ctrlKey: true, shiftKey: true });
+    expect(onLock).toHaveBeenCalledOnce();
+  });
+
+  it("locks automatically after the configured inactivity period", () => {
+    vi.useFakeTimers();
+    const onLock = vi.fn();
+    const { unmount } = render(<VaultWorkspace onLock={onLock} settings={DEFAULT_SETTINGS} onSettingsChange={vi.fn()} />);
+    vi.advanceTimersByTime(5 * 60_000);
+    expect(onLock).toHaveBeenCalledOnce();
+    unmount();
+    vi.useRealTimers();
   });
 });
