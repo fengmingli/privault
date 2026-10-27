@@ -7,7 +7,7 @@ function App() {
   const [unlocked, setUnlocked] = useState(false);
 
   return (
-    <div className="flex min-h-full flex-col bg-background text-foreground">
+    <div className="flex h-screen flex-col bg-background text-foreground">
       <PrototypeBanner />
       {unlocked ? <VaultWorkspace onLock={() => setUnlocked(false)} /> : <AccessFlow onUnlocked={() => setUnlocked(true)} />}
     </div>
