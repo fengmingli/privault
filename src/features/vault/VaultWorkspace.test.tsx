@@ -148,4 +148,17 @@ describe("VaultWorkspace", () => {
     await user.click(screen.getByRole("button", { name: "放弃并锁定" }));
     expect(onLock).toHaveBeenCalledOnce();
   });
+
+  it("fills a generated password into the current editor", async () => {
+    const { user } = setup();
+    await user.click(screen.getByRole("button", { name: "新建" }));
+    const picker = screen.getByRole("dialog", { name: "选择条目类型" });
+    await user.click(within(picker).getByRole("button", { name: /登录信息/ }));
+    const editor = screen.getByRole("dialog", { name: "新建登录信息" });
+    await user.click(within(editor).getByRole("button", { name: "密码生成器" }));
+    const generator = screen.getByRole("dialog", { name: "密码生成器" });
+    const generated = within(generator).getByLabelText("生成的密码").textContent;
+    await user.click(within(generator).getByRole("button", { name: "填入密码" }));
+    expect(screen.getByLabelText("密码")).toHaveValue(generated);
+  });
 });

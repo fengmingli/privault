@@ -6,6 +6,7 @@ import { createEmptyEntry, prepareEntryForSave } from "@/lib/entry-utils";
 import { validateEntry } from "@/lib/validation";
 import type { EntryKind, VaultEntry } from "@/types/vault";
 import { CustomFieldsEditor } from "./CustomFieldsEditor";
+import { PasswordGeneratorDialog } from "./PasswordGeneratorDialog";
 import { ENTRY_KIND_META } from "./entry-kind";
 import { EntryKindFields } from "./EntryKindFields";
 
@@ -23,6 +24,7 @@ export function EntryEditorDialog({ open, entry, kind, onSave, onClose, onDirtyC
   const [draft, setDraft] = useState<VaultEntry | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [confirmClose, setConfirmClose] = useState(false);
+  const [generatorOpen, setGeneratorOpen] = useState(false);
   const dirty = Boolean(original && draft && JSON.stringify(original) !== JSON.stringify(draft));
 
   useEffect(() => {
@@ -32,6 +34,7 @@ export function EntryEditorDialog({ open, entry, kind, onSave, onClose, onDirtyC
     setDraft(structuredClone(base));
     setErrors({});
     setConfirmClose(false);
+    setGeneratorOpen(false);
   }, [open, entry, kind]);
 
   useEffect(() => onDirtyChange(dirty), [dirty, onDirtyChange]);
@@ -59,7 +62,7 @@ export function EntryEditorDialog({ open, entry, kind, onSave, onClose, onDirtyC
       <Dialog open={open} title={title} onClose={requestClose} className="max-w-2xl">
         {draft && <form onSubmit={(event) => { event.preventDefault(); save(); }} className="space-y-5" noValidate>
           <div className="space-y-2"><label htmlFor="entry-title" className="text-sm font-medium">标题</label><input id="entry-title" className="control" value={draft.title} onChange={(event) => patch({ title: event.target.value })} autoFocus />{errors.title && <p role="alert" className="text-sm text-danger">{errors.title}</p>}</div>
-          <EntryKindFields entry={draft} errors={errors} onChange={patch} />
+          <EntryKindFields entry={draft} errors={errors} onChange={patch} onOpenGenerator={() => setGeneratorOpen(true)} />
           <div className="space-y-2"><label htmlFor="entry-notes" className="text-sm font-medium">备注</label><textarea id="entry-notes" className="control" value={draft.notes} onChange={(event) => patch({ notes: event.target.value })} />{errors.notes && <p role="alert" className="text-sm text-danger">{errors.notes}</p>}</div>
           <CustomFieldsEditor fields={draft.customFields} error={errors.customFields} onChange={(customFields) => patch({ customFields })} />
           <label className="flex items-center gap-2 text-sm"><input type="checkbox" className="h-4 w-4 accent-primary" checked={draft.favorite} onChange={(event) => patch({ favorite: event.target.checked })} />收藏此项目</label>
@@ -67,6 +70,7 @@ export function EntryEditorDialog({ open, entry, kind, onSave, onClose, onDirtyC
         </form>}
       </Dialog>
       <ConfirmDialog open={confirmClose} title="放弃未保存修改？" description="当前表单有尚未保存的内容，关闭后这些修改将丢失。" confirmLabel="放弃修改" cancelLabel="继续编辑" destructive onConfirm={() => { setConfirmClose(false); onDirtyChange(false); onClose(); }} onCancel={() => setConfirmClose(false)} />
+      <PasswordGeneratorDialog open={generatorOpen} onClose={() => setGeneratorOpen(false)} onUse={(password) => { patch({ password }); setGeneratorOpen(false); }} />
     </>
   );
 }

@@ -1,4 +1,4 @@
-import { LockKeyhole } from "lucide-react";
+import { LockKeyhole, WandSparkles } from "lucide-react";
 import { BrandMark } from "@/components/BrandMark";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -10,9 +10,10 @@ interface VaultSidebarProps {
   category: Category;
   onCategory: (category: Category) => void;
   onLock: () => void;
+  onGenerator: () => void;
 }
 
-export function VaultSidebar({ entries, category, onCategory, onLock }: VaultSidebarProps) {
+export function VaultSidebar({ entries, category, onCategory, onLock, onGenerator }: VaultSidebarProps) {
   return (
     <aside className="flex min-h-0 flex-col border-r bg-surface">
       <div className="flex h-20 items-center gap-3 border-b px-3 min-[1100px]:px-5">
@@ -36,7 +37,11 @@ export function VaultSidebar({ entries, category, onCategory, onLock }: VaultSid
           );
         })}
       </nav>
-      <div className="border-t p-2 min-[1100px]:p-3">
+      <div className="space-y-1 border-t p-2 min-[1100px]:p-3">
+        <Button type="button" variant="ghost" title="密码生成器" onClick={onGenerator} className="w-full px-2 min-[1100px]:justify-start">
+          <WandSparkles className="h-4 w-4 shrink-0 min-[1100px]:mr-2" aria-hidden="true" />
+          <span className="hidden min-[1100px]:inline">密码生成器</span>
+        </Button>
         <Button type="button" variant="ghost" title="立即锁定" onClick={onLock} className="w-full px-2 min-[1100px]:justify-start">
           <LockKeyhole className="h-4 w-4 shrink-0 min-[1100px]:mr-2" aria-hidden="true" />
           <span className="hidden min-[1100px]:inline">立即锁定</span>

@@ -8,6 +8,7 @@ import { EntryDetailPane } from "./EntryDetailPane";
 import { EntryEditorDialog } from "./EntryEditorDialog";
 import { EntryListPane } from "./EntryListPane";
 import { NewEntryDialog } from "./NewEntryDialog";
+import { PasswordGeneratorDialog } from "./PasswordGeneratorDialog";
 import { VaultSidebar } from "./VaultSidebar";
 
 interface VaultWorkspaceProps {
@@ -22,6 +23,7 @@ export function VaultWorkspace({ onLock, initialEntries }: VaultWorkspaceProps) 
   const [editor, setEditor] = useState<{ open: boolean; entry: VaultEntry | null; kind: EntryKind }>({ open: false, entry: null, kind: "login" });
   const [editorDirty, setEditorDirty] = useState(false);
   const [deleteCandidate, setDeleteCandidate] = useState<VaultEntry | null>(null);
+  const [generatorOpen, setGeneratorOpen] = useState(false);
   const [lockConfirm, setLockConfirm] = useState(false);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const visibleEntries = useMemo(() => filterAndSortEntries(state), [state]);
@@ -55,6 +57,7 @@ export function VaultWorkspace({ onLock, initialEntries }: VaultWorkspaceProps) 
     setLockConfirm(false);
     setNewOpen(false);
     setDeleteCandidate(null);
+    setGeneratorOpen(false);
     closeEditor();
     dispatch({ type: "clear-sensitive-view" });
     onLock();
@@ -79,13 +82,14 @@ export function VaultWorkspace({ onLock, initialEntries }: VaultWorkspaceProps) 
 
   return (
     <main className="grid min-h-0 flex-1 grid-cols-[72px_280px_minmax(0,1fr)] overflow-hidden min-[1100px]:grid-cols-[216px_320px_minmax(0,1fr)]">
-      <VaultSidebar entries={state.entries} category={state.category} onCategory={(category: Category) => dispatch({ type: "set-category", category })} onLock={requestLock} />
+      <VaultSidebar entries={state.entries} category={state.category} onCategory={(category: Category) => dispatch({ type: "set-category", category })} onLock={requestLock} onGenerator={() => setGeneratorOpen(true)} />
       <EntryListPane entries={visibleEntries} totalCount={state.entries.length} selectedId={state.selectedId} query={state.query} onQuery={(query) => dispatch({ type: "set-query", query })} onSelect={(id) => dispatch({ type: "select", id })} onClearSearch={() => dispatch({ type: "set-query", query: "" })} onShowAll={showAll} onNew={() => setNewOpen(true)} searchInputRef={searchInputRef} />
       <EntryDetailPane key={selectedEntry?.id ?? "empty"} entry={selectedEntry} onNotify={notify} onEdit={() => selectedEntry && openEditor(selectedEntry)} onDelete={() => setDeleteCandidate(selectedEntry)} onToggleFavorite={() => selectedEntry && dispatch({ type: "toggle-favorite", id: selectedEntry.id })} />
       <NewEntryDialog open={newOpen} onClose={() => setNewOpen(false)} onSelect={(kind) => { setNewOpen(false); openEditor(null, kind); }} />
       <EntryEditorDialog open={editor.open} entry={editor.entry} kind={editor.kind} onSave={saveEntry} onClose={closeEditor} onDirtyChange={setEditorDirty} />
       <ConfirmDialog open={deleteCandidate !== null} title="删除这个项目？" description={deleteCandidate ? `将删除“${deleteCandidate.title}”。此原型可通过撤销恢复。` : ""} confirmLabel="确认删除" cancelLabel="取消" destructive onConfirm={confirmDelete} onCancel={() => setDeleteCandidate(null)} />
       <ConfirmDialog open={lockConfirm} title="放弃未保存修改？" description="锁定将放弃当前表单中的未保存内容，并清除搜索词和已显示密码。" confirmLabel="放弃并锁定" cancelLabel="继续编辑" destructive onConfirm={performLock} onCancel={() => setLockConfirm(false)} />
+      <PasswordGeneratorDialog open={generatorOpen} onClose={() => setGeneratorOpen(false)} />
       <Toast toast={toast} onClose={closeToast} />
     </main>
   );
