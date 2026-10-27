@@ -91,4 +91,61 @@ describe("VaultWorkspace", () => {
     await user.type(screen.getByLabelText("搜索项目"), "anything");
     expect(screen.getByText("没有匹配的项目")).toBeInTheDocument();
   });
+
+  it("creates a new login through the type picker and editor", async () => {
+    const { user } = setup();
+    await user.click(screen.getByRole("button", { name: "新建" }));
+    const picker = screen.getByRole("dialog", { name: "选择条目类型" });
+    await user.click(within(picker).getByRole("button", { name: /登录信息/ }));
+    await user.type(screen.getByLabelText("标题"), "新演示账号");
+    await user.type(screen.getByLabelText("用户名"), "new@example.com");
+    await user.type(screen.getByLabelText("密码"), "demo-password");
+    await user.click(screen.getByRole("button", { name: "保存项目" }));
+    expect(within(screen.getByRole("region", { name: "条目列表" })).getByText("新演示账号")).toBeInTheDocument();
+  });
+
+  it("edits the selected entry and toggles favorite", async () => {
+    const { user } = setup();
+    await user.click(screen.getByRole("button", { name: "编辑" }));
+    await user.clear(screen.getByLabelText("标题"));
+    await user.type(screen.getByLabelText("标题"), "更新后的 GitHub 演示");
+    await user.click(screen.getByRole("button", { name: "保存项目" }));
+    expect(screen.getByRole("heading", { name: "更新后的 GitHub 演示" })).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "取消收藏" }));
+    expect(screen.getByRole("button", { name: /^收藏$/ })).toBeInTheDocument();
+  });
+
+  it("keeps or discards a dirty editor after confirmation", async () => {
+    const { user } = setup();
+    await user.click(screen.getByRole("button", { name: "编辑" }));
+    await user.clear(screen.getByLabelText("标题"));
+    await user.type(screen.getByLabelText("标题"), "未保存的演示修改");
+    await user.click(screen.getByRole("button", { name: "关闭对话框" }));
+    await user.click(screen.getByRole("button", { name: "继续编辑" }));
+    expect(screen.getByLabelText("标题")).toHaveValue("未保存的演示修改");
+    await user.click(screen.getByRole("button", { name: "关闭对话框" }));
+    await user.click(screen.getByRole("button", { name: "放弃修改" }));
+    expect(screen.queryByRole("dialog", { name: "编辑项目" })).not.toBeInTheDocument();
+  });
+
+  it("deletes and undoes deletion of an entry", async () => {
+    const { user } = setup();
+    const list = screen.getByRole("region", { name: "条目列表" });
+    await user.click(screen.getByRole("button", { name: "删除" }));
+    expect(screen.getByText(/将删除“示例 GitHub”/)).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "确认删除" }));
+    expect(within(list).queryByText("示例 GitHub")).not.toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "撤销" }));
+    expect(within(list).getByText("示例 GitHub")).toBeInTheDocument();
+  });
+
+  it("requires confirmation before locking with unsaved edits", async () => {
+    const { user, onLock } = setup();
+    await user.click(screen.getByRole("button", { name: "编辑" }));
+    await user.clear(screen.getByLabelText("标题"));
+    await user.type(screen.getByLabelText("标题"), "未保存修改");
+    await user.click(screen.getByRole("button", { name: "立即锁定" }));
+    await user.click(screen.getByRole("button", { name: "放弃并锁定" }));
+    expect(onLock).toHaveBeenCalledOnce();
+  });
 });

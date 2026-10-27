@@ -34,6 +34,20 @@ export function getEntrySummary(entry: VaultEntry): string {
   }
 }
 
+export function prepareEntryForSave(draft: VaultEntry, original: VaultEntry | null, now = new Date().toISOString()): VaultEntry {
+  if (draft.kind === "login" && original?.kind === "login" && draft.password !== original.password) {
+    return {
+      ...draft,
+      updatedAt: now,
+      passwordHistory: [
+        { id: crypto.randomUUID(), password: original.password, changedAt: original.updatedAt },
+        ...draft.passwordHistory,
+      ],
+    };
+  }
+  return { ...draft, updatedAt: now };
+}
+
 export function createEmptyEntry(kind: EntryKind): VaultEntry {
   const now = new Date().toISOString();
   const base = {

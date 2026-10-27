@@ -1,5 +1,5 @@
 import type { RefObject } from "react";
-import { Search, Star } from "lucide-react";
+import { Plus, Search, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { getEntrySummary } from "@/lib/entry-utils";
 import { cn } from "@/lib/utils";
@@ -15,18 +15,20 @@ interface EntryListPaneProps {
   onSelect: (id: string) => void;
   onClearSearch: () => void;
   onShowAll: () => void;
+  onNew: () => void;
   searchInputRef?: RefObject<HTMLInputElement | null>;
 }
 
-export function EntryListPane({ entries, totalCount, selectedId, query, onQuery, onSelect, onClearSearch, onShowAll, searchInputRef }: EntryListPaneProps) {
+export function EntryListPane({ entries, totalCount, selectedId, query, onQuery, onSelect, onClearSearch, onShowAll, onNew, searchInputRef }: EntryListPaneProps) {
   return (
     <section aria-label="条目列表" className="flex min-h-0 flex-col border-r bg-surface">
-      <div className="border-b p-4">
-        <label className="relative block">
+      <div className="flex items-center gap-2 border-b p-4">
+        <label className="relative block flex-1">
           <span className="sr-only">搜索项目</span>
           <Search className="pointer-events-none absolute left-3 top-3 h-4 w-4 text-foreground-muted" aria-hidden="true" />
           <input ref={searchInputRef} aria-label="搜索项目" type="search" value={query} onChange={(event) => onQuery(event.target.value)} placeholder="搜索项目…" className="control pl-9" autoComplete="off" />
         </label>
+        <Button type="button" size="icon" aria-label="新建" title="新建项目" onClick={onNew}><Plus className="h-4 w-4" aria-hidden="true" /></Button>
       </div>
       <div className="flex items-center justify-between px-4 py-3 text-xs text-foreground-muted">
         <span>{entries.length} 个项目</span>
@@ -61,7 +63,7 @@ export function EntryListPane({ entries, totalCount, selectedId, query, onQuery,
             <Search className="mb-3 h-6 w-6 text-foreground-muted" aria-hidden="true" />
             <h3 className="text-sm font-medium">{totalCount === 0 && !query ? "保险库还是空的" : "没有匹配的项目"}</h3>
             <p className="mt-2 text-xs leading-5 text-foreground-muted">{totalCount === 0 && !query ? "新建条目后将在这里显示。" : "试试其他关键词，或清除当前筛选条件。"}</p>
-            {(query || totalCount > 0) && <div className="mt-4 flex flex-col gap-2"><Button type="button" variant="outline" size="sm" onClick={onClearSearch} disabled={!query}>清除搜索</Button><Button type="button" variant="ghost" size="sm" onClick={onShowAll}>查看全部项目</Button></div>}
+            {totalCount === 0 && !query ? <Button type="button" size="sm" className="mt-4" onClick={onNew}><Plus className="mr-1 h-4 w-4" />新建第一个项目</Button> : (query || totalCount > 0) && <div className="mt-4 flex flex-col gap-2"><Button type="button" variant="outline" size="sm" onClick={onClearSearch} disabled={!query}>清除搜索</Button><Button type="button" variant="ghost" size="sm" onClick={onShowAll}>查看全部项目</Button></div>}
           </div>
         )}
       </div>

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Copy, Eye, EyeOff, FileKey, Star } from "lucide-react";
+import { Copy, Eye, EyeOff, FileKey, Pencil, Star, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { copyText } from "@/lib/clipboard";
 import type { VaultEntry } from "@/types/vault";
@@ -9,6 +9,9 @@ import { ENTRY_KIND_META } from "./entry-kind";
 interface EntryDetailPaneProps {
   entry: VaultEntry | null;
   onNotify: (message: string, tone: ToastTone) => void;
+  onEdit: () => void;
+  onDelete: () => void;
+  onToggleFavorite: () => void;
 }
 
 type CopyHandler = (label: string, value: string) => void;
@@ -56,7 +59,7 @@ function EntryFields({ entry, onCopy }: { entry: VaultEntry; onCopy: CopyHandler
   }
 }
 
-export function EntryDetailPane({ entry, onNotify }: EntryDetailPaneProps) {
+export function EntryDetailPane({ entry, onNotify, onEdit, onDelete, onToggleFavorite }: EntryDetailPaneProps) {
   async function onCopy(label: string, value: string) {
     const copied = await copyText(value);
     onNotify(copied ? `${label}已复制` : "复制失败，请检查系统权限", copied ? "success" : "error");
@@ -71,11 +74,18 @@ export function EntryDetailPane({ entry, onNotify }: EntryDetailPaneProps) {
     <section aria-label="条目详情" className="min-h-0 flex-1 overflow-y-auto">
       <div className="mx-auto max-w-3xl px-8 py-8 lg:px-10">
         <header className="border-b pb-6">
-          <div className="flex items-start gap-4">
-            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-accent text-accent-foreground"><Icon className="h-5 w-5" aria-hidden="true" /></div>
-            <div className="min-w-0">
-              <div className="flex items-center gap-2"><h2 className="break-words text-2xl font-semibold tracking-tight">{entry.title}</h2>{entry.favorite && <Star className="h-4 w-4 fill-current text-primary" aria-label="已收藏" />}</div>
-              <p className="mt-1.5 text-sm text-foreground-muted">{label} · 更新于 {new Intl.DateTimeFormat("zh-CN", { year: "numeric", month: "long", day: "numeric" }).format(new Date(entry.updatedAt))}</p>
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div className="flex min-w-0 items-start gap-4">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-accent text-accent-foreground"><Icon className="h-5 w-5" aria-hidden="true" /></div>
+              <div className="min-w-0">
+                <div className="flex items-center gap-2"><h2 className="break-words text-2xl font-semibold tracking-tight">{entry.title}</h2>{entry.favorite && <Star className="h-4 w-4 fill-current text-primary" aria-label="已收藏" />}</div>
+                <p className="mt-1.5 text-sm text-foreground-muted">{label} · 更新于 {new Intl.DateTimeFormat("zh-CN", { year: "numeric", month: "long", day: "numeric" }).format(new Date(entry.updatedAt))}</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-1">
+              <Button type="button" variant="ghost" size="sm" onClick={onToggleFavorite}><Star className="mr-1 h-4 w-4" aria-hidden="true" />{entry.favorite ? "取消收藏" : "收藏"}</Button>
+              <Button type="button" variant="outline" size="sm" onClick={onEdit}><Pencil className="mr-1 h-4 w-4" aria-hidden="true" />编辑</Button>
+              <Button type="button" variant="ghost" size="sm" className="text-danger hover:bg-danger/10 hover:text-danger" onClick={onDelete}><Trash2 className="mr-1 h-4 w-4" aria-hidden="true" />删除</Button>
             </div>
           </div>
         </header>
