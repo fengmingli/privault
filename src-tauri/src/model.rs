@@ -211,3 +211,9 @@ pub struct AppConfig {
 }
 
 pub type MigrationId = String;
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RecoveryKeyResult {
+    pub recovery_key: String,
+}

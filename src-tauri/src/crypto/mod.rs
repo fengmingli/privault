@@ -124,6 +124,16 @@ fn create_slot(
     })
 }
 
+pub(crate) fn create_slot_for_credential(
+    dek: &Dek,
+    credential: &str,
+    kind: KeySlotKind,
+    vault_id: &str,
+    kdf: KdfParams,
+) -> VaultResult<KeySlot> {
+    create_slot(dek, credential, kind, vault_id, kdf)
+}
+
 pub fn create_meta(master: &str, recovery: &str) -> VaultResult<(VaultMeta, Dek)> {
     create_meta_with_params(master, recovery, KdfParams::calibrated())
 }
