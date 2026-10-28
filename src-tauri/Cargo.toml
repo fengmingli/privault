@@ -12,4 +12,26 @@ crate-type = ["staticlib", "cdylib", "rlib"]
 tauri-build = { version = "2", features = [] }
 
 [dependencies]
+argon2 = "0.6.0"
+base32 = "0.5.1"
+chacha20poly1305 = "0.11.0"
+chrono = { version = "0.4.45", features = ["clock", "serde"] }
+dirs = "7.0.0"
+getrandom = "0.4.3"
+hex = "0.4.3"
+libc = "0.2.191"
+rfd = "0.17.2"
+rusqlite = { version = "0.41.0", features = ["bundled-sqlcipher-vendored-openssl"] }
+serde = { version = "1.0.229", features = ["derive"] }
+serde_json = "1.0.154"
+sha2 = "0.11.1"
 tauri = { version = "2", features = [] }
+thiserror = "2.0.21"
+uuid = { version = "1.29.0", features = ["v4", "serde"] }
+zeroize = "1.9.1"
+
+[target."cfg(windows)".dependencies]
+windows-sys = { version = "0.61.2", features = ["Win32_Storage_FileSystem", "Win32_Security", "Win32_Security_Authorization"] }
+
+[dev-dependencies]
+tempfile = "3.27.0"
