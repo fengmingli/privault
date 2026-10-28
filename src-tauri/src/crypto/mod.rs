@@ -24,7 +24,7 @@ impl Dek {
         Ok(Self(Zeroizing::new(bytes)))
     }
 
-    #[cfg(test)]
+    #[doc(hidden)]
     pub fn new_for_test() -> Self {
         Self(Zeroizing::new([7_u8; 32]))
     }

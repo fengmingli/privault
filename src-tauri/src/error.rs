@@ -14,6 +14,7 @@ pub enum ErrorCode {
     InsufficientSpace,
     MigrationInProgress,
     MigrationNotFound,
+    InvalidInput,
     IoError,
 }
 
@@ -44,6 +45,12 @@ impl VaultError {
 impl From<std::io::Error> for VaultError {
     fn from(_: std::io::Error) -> Self {
         Self::io()
+    }
+}
+
+impl From<rusqlite::Error> for VaultError {
+    fn from(_: rusqlite::Error) -> Self {
+        Self::new(ErrorCode::IoError, "本地数据库操作失败")
     }
 }
 
