@@ -46,7 +46,10 @@ pub fn default_config_path() -> VaultResult<PathBuf> {
 }
 
 pub fn load_config() -> VaultResult<AppConfig> {
-    let path = default_config_path()?;
+    load_config_from(&default_config_path()?)
+}
+
+pub fn load_config_from(path: &Path) -> VaultResult<AppConfig> {
     if !path.exists() {
         return Ok(AppConfig {
             version: 1,
@@ -79,6 +82,7 @@ fn sync_parent(path: &Path) -> VaultResult<()> {
 pub fn write_config_atomic(path: &Path, config: &AppConfig) -> VaultResult<()> {
     let parent = path.parent().unwrap_or_else(|| Path::new("."));
     fs::create_dir_all(parent)?;
+    crate::platform::secure_directory(parent)?;
     let temporary = path.with_extension(format!("{}.tmp", uuid::Uuid::new_v4()));
     let result = (|| {
         let mut file = OpenOptions::new()

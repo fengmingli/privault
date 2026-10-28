@@ -3,6 +3,8 @@ pub mod crypto;
 pub mod error;
 pub mod metadata;
 pub mod model;
+pub mod path_policy;
+pub mod platform;
 pub mod storage;
 pub mod vault;
 
