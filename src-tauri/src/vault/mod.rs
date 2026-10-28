@@ -24,6 +24,7 @@ use std::sync::Arc;
 pub(crate) enum SessionState {
     Empty,
     Locked,
+    Error,
     Unlocked { connection: Connection, _dek: Dek },
 }
 
@@ -38,6 +39,23 @@ pub struct VaultManager {
 }
 
 impl VaultManager {
+    #[doc(hidden)]
+    pub fn new_recovery_mode() -> VaultResult<Self> {
+        let root = default_vault_dir()?;
+        Ok(Self {
+            config: AppConfig {
+                version: 1,
+                storage_path: root.to_string_lossy().into_owned(),
+            },
+            config_file: default_config_path()?,
+            workspace: Workspace::new(root),
+            session: SessionState::Error,
+            kdf: KdfParams::calibrated(),
+            migration: None,
+            migration_fs: Arc::new(StdMigrationFs),
+        })
+    }
+
     pub fn new() -> VaultResult<Self> {
         let config = load_config()?;
         let config_file = default_config_path()?;
@@ -118,6 +136,7 @@ impl VaultManager {
             state: match self.session {
                 SessionState::Empty => VaultStatusKind::Empty,
                 SessionState::Locked => VaultStatusKind::Locked,
+                SessionState::Error => VaultStatusKind::Error,
                 SessionState::Unlocked { .. } => VaultStatusKind::Unlocked,
             },
             location: self
