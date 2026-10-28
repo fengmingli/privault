@@ -11,8 +11,18 @@ fn c_string(path: &Path) -> VaultResult<CString> {
         .map_err(|_| VaultError::new(ErrorCode::PathUnsupported, "路径包含无效字符"))
 }
 
+fn existing_ancestor(path: &Path) -> VaultResult<PathBuf> {
+    let mut current = path;
+    while !current.exists() {
+        current = current
+            .parent()
+            .ok_or_else(|| VaultError::new(ErrorCode::PathUnavailable, "无法读取卷信息"))?;
+    }
+    Ok(current.to_path_buf())
+}
+
 fn stat(path: &Path) -> VaultResult<libc::statfs> {
-    let path = c_string(path)?;
+    let path = c_string(&existing_ancestor(path)?)?;
     let mut stats = unsafe { std::mem::zeroed::<libc::statfs>() };
     let result = unsafe { libc::statfs(path.as_ptr(), &mut stats) };
     if result != 0 {

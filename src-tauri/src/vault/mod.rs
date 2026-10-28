@@ -9,6 +9,7 @@ use crate::crypto::{
 };
 use crate::error::{ErrorCode, VaultError, VaultResult};
 use crate::metadata::{read_meta, write_meta_atomic};
+use crate::migration::{MigrationFs, MigrationOperation, StdMigrationFs};
 use crate::model::{
     AppConfig, EntryKind, EntrySummary, RecoveryKeyResult, VaultEntry, VaultStatus, VaultStatusKind,
 };
@@ -18,19 +19,22 @@ use crate::storage::{
 };
 use rusqlite::Connection;
 use std::path::{Path, PathBuf};
+use std::sync::Arc;
 
-enum SessionState {
+pub(crate) enum SessionState {
     Empty,
     Locked,
     Unlocked { connection: Connection, _dek: Dek },
 }
 
 pub struct VaultManager {
-    config: AppConfig,
-    config_file: PathBuf,
-    workspace: Workspace,
-    session: SessionState,
+    pub(crate) config: AppConfig,
+    pub(crate) config_file: PathBuf,
+    pub(crate) workspace: Workspace,
+    pub(crate) session: SessionState,
     kdf: KdfParams,
+    pub(crate) migration: Option<MigrationOperation>,
+    pub(crate) migration_fs: Arc<dyn MigrationFs>,
 }
 
 impl VaultManager {
@@ -86,7 +90,19 @@ impl VaultManager {
             workspace,
             session,
             kdf,
+            migration: None,
+            migration_fs: Arc::new(StdMigrationFs),
         })
+    }
+
+    #[doc(hidden)]
+    pub fn set_migration_fs_for_test(&mut self, fs: Arc<dyn MigrationFs>) {
+        self.migration_fs = fs;
+    }
+
+    #[doc(hidden)]
+    pub fn set_config_file_for_test(&mut self, path: &Path) {
+        self.config_file = path.to_path_buf();
     }
 
     pub fn workspace_root(&self) -> PathBuf {
