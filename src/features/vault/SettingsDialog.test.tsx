@@ -2,6 +2,7 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { DEFAULT_SETTINGS } from "@/lib/settings";
+import { DemoVaultGateway } from "@/lib/demo-gateway";
 import { SettingsDialog } from "./SettingsDialog";
 
 describe("SettingsDialog", () => {
@@ -9,7 +10,7 @@ describe("SettingsDialog", () => {
     const user = userEvent.setup();
     const onChange = vi.fn();
     const onCapability = vi.fn();
-    render(<SettingsDialog open settings={DEFAULT_SETTINGS} onChange={onChange} onClose={vi.fn()} onCapability={onCapability} />);
+    render(<SettingsDialog open settings={DEFAULT_SETTINGS} onChange={onChange} onClose={vi.fn()} onCapability={onCapability} gateway={new DemoVaultGateway()} onMigrationActiveChange={vi.fn()} onRequireUnlock={vi.fn()} />);
 
     await user.click(screen.getByLabelText("深色"));
     expect(onChange).toHaveBeenCalledWith({ theme: "dark" });

@@ -246,7 +246,7 @@ vault_recover_access(recoveryKey, newMasterPassword) -> { recoveryKey }
 
 storage_get_location() -> StorageLocation
 storage_choose_location() -> string | null
-storage_prepare_migration(destination) -> { migrationId }
+storage_prepare_migration(destination: string | null) -> { migrationId }
 storage_confirm_migration(migrationId, masterPassword) -> StorageLocation
 storage_cancel_migration(migrationId) -> void
 ```
@@ -273,6 +273,7 @@ storage_cancel_migration(migrationId) -> void
 
 - 只通过系统目录选择器修改，不提供可粘贴任意路径的文本框。
 - 恢复默认目录使用相同的备份、验证和回滚流程。
+- 恢复默认目录时前端传 `destination: null`，默认路径只由 Rust 计算；前端不拼接用户主目录或应用数据路径。
 - 迁移中显示备份、复制、验证和切换阶段，并禁止编辑、删除和其他迁移。
 - 成功后提示“存储位置已更新，请重新解锁”。
 - 失败时显示脱敏原因，当前路径保持不变。

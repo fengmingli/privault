@@ -35,6 +35,7 @@ describe("App real-vault startup", () => {
     vi.mocked(createVaultGateway).mockReturnValue({
       isDemo: false,
       status,
+      getLocation: vi.fn().mockResolvedValue(location),
       listEntries: vi.fn(() => new Promise(() => {})),
     } as unknown as VaultGateway);
     render(<App />);

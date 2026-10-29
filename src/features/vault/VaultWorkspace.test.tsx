@@ -5,6 +5,7 @@ import { DemoVaultGateway } from "@/lib/demo-gateway";
 import { DEFAULT_SETTINGS } from "@/lib/settings";
 import { copyText } from "@/lib/clipboard";
 import type { VaultEntry } from "@/types/vault";
+import type { VaultGateway } from "@/lib/vault-client";
 import { VaultWorkspace } from "./VaultWorkspace";
 
 vi.mock("@/lib/clipboard", () => ({ copyText: vi.fn() }));
@@ -165,6 +166,34 @@ describe("VaultWorkspace", () => {
     const generated = within(generator).getByLabelText("生成的密码").textContent;
     await user.click(within(generator).getByRole("button", { name: "填入密码" }));
     expect(screen.getByLabelText("密码")).toHaveValue(generated);
+  });
+
+  it("blocks entry writes while a storage migration is active", async () => {
+    const user = userEvent.setup();
+    const demo = new DemoVaultGateway();
+    let resolvePrepare!: (result: { migrationId: string }) => void;
+    const prepareResult = new Promise<{ migrationId: string }>((resolve) => { resolvePrepare = resolve; });
+    const gateway = {
+      isDemo: false,
+      listEntries: () => demo.listEntries(),
+      getEntry: (id: string) => demo.getEntry(id),
+      getLocation: vi.fn().mockResolvedValue({ path: "/fixed/current", isDefault: false, volumeKind: "fixed" }),
+      chooseLocation: vi.fn().mockResolvedValue("/fixed/next"),
+      prepareMigration: vi.fn(() => prepareResult),
+    } as unknown as VaultGateway;
+    render(<VaultWorkspace onLock={vi.fn()} gateway={gateway} settings={DEFAULT_SETTINGS} onSettingsChange={vi.fn()} />);
+    await screen.findByRole("heading", { name: "示例 GitHub" });
+    await user.click(screen.getByRole("button", { name: "设置" }));
+    const changeLocation = await screen.findByRole("button", { name: "更改存储目录" });
+    await waitFor(() => expect(changeLocation).toBeEnabled());
+    await user.click(changeLocation);
+    const migration = await screen.findByRole("dialog", { name: "迁移存储目录" });
+    expect(screen.getByRole("main")).toHaveAttribute("aria-busy", "true");
+    await user.click(screen.getByRole("button", { name: "新建" }));
+    expect(screen.queryByRole("dialog", { name: "选择条目类型" })).not.toBeInTheDocument();
+    resolvePrepare({ migrationId: "migration-1" });
+    expect(await within(migration).findByLabelText("主密码")).toBeInTheDocument();
+    expect(screen.getByRole("main")).toHaveAttribute("aria-busy", "true");
   });
 
   it("opens settings and explains unavailable export without writing files", async () => {

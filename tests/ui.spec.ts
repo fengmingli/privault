@@ -78,6 +78,15 @@ test("validation and unsaved-change states", async ({ page }) => {
   await expect(editor).not.toBeVisible();
 });
 
+test("browser demo keeps real storage controls unavailable", async ({ page }) => {
+  await unlock(page);
+  await page.getByRole("button", { name: "设置" }).click();
+  const settings = page.getByRole("dialog", { name: "设置" });
+  await expect(settings.getByText("浏览器 Demo 使用内存数据，不显示或修改真实存储路径。")).toBeVisible();
+  await expect(settings.getByRole("button", { name: "更改存储目录" })).toHaveCount(0);
+  await expect(settings.getByText("本机固定磁盘 · 加密存储")).toHaveCount(0);
+});
+
 test("light and dark desktop screenshots", async ({ page }) => {
   await mkdir("test-results", { recursive: true });
   await page.emulateMedia({ colorScheme: "light" });

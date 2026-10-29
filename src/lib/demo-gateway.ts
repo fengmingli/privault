@@ -101,7 +101,7 @@ export class DemoVaultGateway implements VaultGateway {
     return null;
   }
 
-  async prepareMigration(_destination: string): Promise<MigrationResult> {
+  async prepareMigration(_destination: string | null): Promise<MigrationResult> {
     throw new Error("浏览器演示模式不支持真实路径迁移");
   }
 

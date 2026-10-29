@@ -1,3 +1,4 @@
+use crate::config::default_vault_dir;
 use crate::error::{ErrorCode, VaultError, VaultResult};
 use crate::model::{
     EntrySummary, MigrationResult, RecoveryKeyResult, StorageLocation, VaultEntry, VaultStatus,
@@ -188,14 +189,20 @@ pub fn storage_choose_location() -> Option<String> {
         .map(|path| path.to_string_lossy().into_owned())
 }
 
+fn resolve_migration_destination(destination: Option<String>) -> VaultResult<PathBuf> {
+    match destination {
+        Some(path) => Ok(PathBuf::from(path)),
+        None => default_vault_dir(),
+    }
+}
+
 #[tauri::command]
 pub fn storage_prepare_migration(
     state: State<'_, Mutex<VaultManager>>,
-    destination: String,
+    destination: Option<String>,
 ) -> VaultResult<MigrationResult> {
-    let migration_id = with_manager(&state, |manager| {
-        prepare_migration(manager, PathBuf::from(destination))
-    })?;
+    let destination = resolve_migration_destination(destination)?;
+    let migration_id = with_manager(&state, |manager| prepare_migration(manager, destination))?;
     Ok(MigrationResult { migration_id })
 }
 
@@ -216,4 +223,28 @@ pub fn storage_cancel_migration(
     migration_id: String,
 ) -> VaultResult<()> {
     with_manager(&state, |manager| cancel_migration(manager, migration_id))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{resolve_migration_destination, PathBuf};
+    use crate::config::default_vault_dir;
+
+    #[test]
+    fn selected_migration_destination_is_not_rewritten() {
+        let selected = PathBuf::from("selected-destination");
+        let resolved = resolve_migration_destination(Some(selected.to_string_lossy().into_owned()))
+            .expect("selected destination should resolve");
+        assert_eq!(resolved, selected);
+    }
+
+    #[test]
+    fn default_migration_destination_is_resolved_by_rust() {
+        let resolved =
+            resolve_migration_destination(None).expect("default destination should resolve");
+        assert_eq!(
+            resolved,
+            default_vault_dir().expect("default vault directory")
+        );
+    }
 }
