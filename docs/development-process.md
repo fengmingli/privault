@@ -26,6 +26,9 @@
 | Rust / Cargo | 1.99.1（Homebrew） | 在本地加密保险库阶段经用户单独批准后安装 | 可用于 SQLCipher、Tauri 和 Rust 测试 |
 | tauri-driver | 2.1.0 | 2026-10-29 执行 `cargo install tauri-driver --locked` | 已安装到 `~/.cargo/bin/tauri-driver`，但**不支持当前 macOS 平台**，不能用于桌面验收 |
 | WebdriverIO | 10.1.0 | 2026-10-29 执行 `npm install -D webdriverio --registry=https://registry.npmjs.org` | 已作为开发依赖写入 `package.json` 和 `package-lock.json` |
+| Appium | 3.9.0 | 2026-10-29 经用户批准后执行项目本地 npm 安装 | 已作为开发依赖安装，`npx appium --version` 验证通过 |
+| Appium Mac2 Driver | 4.5.1 | 与 Appium 一同作为项目开发依赖安装 | `npx appium driver list` 显示 `mac2@4.5.1 [installed (npm)]` |
+| mas（Mac App Store CLI） | 7.0.0 | 通过 `brew install mas` 安装，用于尝试安装官方 Xcode | 工具已安装；Xcode 安装因需要交互式管理员认证而等待用户操作 |
 
 补充说明：
 
@@ -54,7 +57,35 @@ Password:Password is not valid, please try again.
 - 官方 README 只列出 Linux 的 WebKitWebDriver 和 Windows 的 Microsoft Edge Driver；macOS Appium Mac2 Driver 仍标为 Todo。
 - 所以即使启用 `safaridriver`，当前 `tauri-driver` 仍不能完成 macOS Tauri 自动化验收。
 
-本轮**没有安装 Appium、Appium Mac2 Driver 或其他替代驱动**。如需安装这些新工具，必须再次单独征得用户批准。
+在最初的 `tauri-driver` 评估阶段没有安装 Appium、Appium Mac2 Driver 或其他替代驱动。随后用户于 2026-10-29 明确批准安装自动化环境，实际安装过程见下节；任何新的后续工具仍需按约定记录。
+
+### 1.4 Appium / Mac2 自动化环境安装
+
+2026-10-29 用户批准安装完整自动化环境后执行：
+
+```bash
+npm install -D appium@3.9.0 appium-mac2-driver@4.5.1 --registry=https://registry.npmjs.org
+```
+
+结果：新增 222 个 npm 包，npm 报告 0 个漏洞；两项均写入项目开发依赖，没有全局安装 Appium。`npx appium driver list` 已确认 Mac2 驱动通过项目 npm 依赖被发现。
+
+环境诊断命令：
+
+```bash
+npx appium driver doctor mac2
+```
+
+诊断确认两个必需问题都指向完整 Xcode：当前开发者目录是 Command Line Tools，且 `xcodebuild` 不可用。诊断还列出两个可选项：关闭 Automation Mode 认证、安装 ffmpeg 用于屏幕录制。为保持系统安全和减少无关依赖，本轮**没有关闭认证，也没有安装 ffmpeg**。
+
+Homebrew 没有名为 `xcode` 的 cask，因此安装 `mas 7.0.0` 并尝试：
+
+```bash
+mas install 497799835
+```
+
+该命令触发 `sudo` 交互式密码要求，非交互终端无法继续。已为用户打开 Apple 官方 Xcode App Store 页面（应用 ID `497799835`），等待用户点击“获取/安装”并完成系统认证。Homebrew 在安装 `mas` 时自动更新了索引，但没有升级其他已安装包；出现的旧包和不受信任 tap 提示未做任何额外处理。
+
+Xcode 安装后仍需：同意 Xcode 许可、配置 `xcode-select`、重新运行 Mac2 doctor，并由用户在系统设置中授予 Xcode Helper 辅助功能权限。当前尚未验证 Appium Mac2 能否稳定定位 Privault 的 Tauri/WKWebView 元素。
 
 ## 2. 项目依赖变化
 
@@ -65,10 +96,10 @@ Password:Password is not valid, please try again.
 - UI：React / React DOM 19.3.1、React Router 7.18.4、Lucide 1.62.0。
 - Tauri：`@tauri-apps/api` 与 `@tauri-apps/cli` 2.12.4。
 - 构建：Vite 8.3.5、TypeScript 7.0.2、Tailwind CSS 3.4.17、PostCSS、Autoprefixer。
-- 测试：Vitest 5.0.5、Testing Library、Playwright 1.64.1、jsdom 30.1.3、WebdriverIO 10.1.0。
+- 测试：Vitest 5.0.5、Testing Library、Playwright 1.64.1、jsdom 30.1.3、WebdriverIO 10.1.0、Appium 3.9.0、Appium Mac2 Driver 4.5.1。
 - 代码检查：oxlint（当前安装 1.90.0）。
 
-Task 8 新增生产依赖 `@tauri-apps/api`，用于前端网关调用受限 Rust 命令。Task 10 工具准备阶段新增开发依赖 `webdriverio`。所有准确版本和传递依赖分别由 `package.json`、`package-lock.json` 管理。
+Task 8 新增生产依赖 `@tauri-apps/api`，用于前端网关调用受限 Rust 命令。Task 10 工具准备阶段新增开发依赖 `webdriverio`、`appium` 和 `appium-mac2-driver`。所有准确版本和传递依赖分别由 `package.json`、`package-lock.json` 管理。
 
 ### 2.2 Rust 依赖
 
@@ -140,9 +171,16 @@ Task 8 新增生产依赖 `@tauri-apps/api`，用于前端网关调用受限 Rus
 - “恢复默认目录”复用同一迁移流程：前端传 `destination: null`，默认路径只由 Rust 计算。
 - 通用 Dialog 新增忙碌时禁止关闭，避免准备/验证中途留下未处理迁移。
 
+### 3.4 2026-10-29：桌面验收环境准备（进行中）
+
+- 安装项目本地 Appium / Mac2 和 App Store CLI `mas`，具体命令与阻塞见 1.4。
+- `src-tauri/src/config.rs` 新增仅 debug/test 生效的 `PRIVAULT_CONFIG_DIR` 隔离覆盖；release 构建忽略该环境变量。
+- 覆盖值必须为绝对路径，并同时决定默认配置和初始保险库目录，避免测试误写真实默认保险库。
+- 新增绝对路径接受和相对路径拒绝测试；没有通过全局环境变量并发测试，避免测试间交叉污染。
+
 ## 4. 验证记录
 
-最近一次完整非桌面验证（Task 9 完成后）：
+最近一次完整非桌面验证（Appium 环境准备及隔离配置修改后）：
 
 | 检查 | 结果 |
 | --- | --- |
@@ -150,9 +188,10 @@ Task 8 新增生产依赖 `@tauri-apps/api`，用于前端网关调用受限 Rus
 | 本机 Chrome E2E | 7 个测试通过，包括 Demo 存储边界 |
 | 前端 lint | 通过，无警告 |
 | TypeScript + Vite 生产构建 | 通过 |
-| Rust 测试 | 39 个测试通过 |
+| Rust 测试 | 41 个测试通过 |
 | `cargo fmt --check` | 通过 |
 | `cargo clippy --all-targets -- -D warnings` | 通过 |
+| `cargo check --release` | 通过，确认 release 配置可编译 |
 
 测试数据边界：
 
@@ -164,13 +203,13 @@ Task 8 新增生产依赖 `@tauri-apps/api`，用于前端网关调用受限 Rus
 
 ### 5.1 macOS 桌面自动化阻塞
 
-原 Task 10 计划假设 `tauri-driver + safaridriver` 可覆盖 macOS，但已安装的 `tauri-driver 2.1.0` 源码证明该假设不成立。当前只能确认工具安装结果，不能确认真实桌面 UI 验收结果。
+原 Task 10 计划假设 `tauri-driver + safaridriver` 可覆盖 macOS，但已安装的 `tauri-driver 2.1.0` 源码证明该假设不成立。随后已按用户批准安装项目本地 Appium 3.9.0 和 Mac2 Driver 4.5.1；完整 Xcode 安装仍等待 App Store 交互式认证，真实桌面自动化验收尚未运行。
 
-可选后续方向（尚未执行）：
+当前采用 Appium 评估路线，仍需完成：
 
-1. 经用户另行批准后，评估并安装 Appium / Appium Mac2 Driver，验证其是否能可靠控制 Privault 的 Tauri/WKWebView；可能需要额外系统权限。
-2. 保留自动化验收为未完成，提供隔离环境的人工桌面验收步骤，由用户实际操作并记录结果。
-3. 在 Linux/Windows 环境使用受支持的 `tauri-driver` 执行同一自动化流程；Windows 仍需单独实测，不能根据 macOS 或其他平台结果推断通过。
+1. 完成官方 Xcode 安装和许可配置，验证 Appium Mac2 是否能可靠控制 Privault 的 Tauri/WKWebView；辅助功能等系统权限需要用户手动授权。
+2. 如果 Appium 路线不可行，保留自动化验收为未完成，提供隔离环境的人工桌面验收步骤，由用户实际操作并记录结果。
+3. 在 Linux/Windows 环境可使用受支持的 `tauri-driver` 执行自动化流程；Windows 仍需单独实测，不能根据 macOS 或其他平台结果推断通过。
 
 ### 5.2 Task 10 尚未完成
 

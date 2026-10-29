@@ -35,10 +35,36 @@ impl Workspace {
     }
 }
 
-pub fn default_vault_dir() -> VaultResult<PathBuf> {
+fn system_vault_dir() -> VaultResult<PathBuf> {
     dirs::data_local_dir()
         .map(|path| path.join("Privault"))
         .ok_or_else(|| VaultError::new(ErrorCode::PathUnavailable, "无法确定本地数据目录"))
+}
+
+fn default_vault_dir_with_override(override_dir: Option<PathBuf>) -> VaultResult<PathBuf> {
+    #[cfg(any(debug_assertions, test))]
+    if let Some(path) = override_dir {
+        if !path.is_absolute() {
+            return Err(VaultError::new(
+                ErrorCode::PathUnavailable,
+                "测试配置目录必须是绝对路径",
+            ));
+        }
+        return Ok(path);
+    }
+
+    #[cfg(not(any(debug_assertions, test)))]
+    let _ = override_dir;
+
+    system_vault_dir()
+}
+
+pub fn default_vault_dir() -> VaultResult<PathBuf> {
+    #[cfg(any(debug_assertions, test))]
+    let override_dir = std::env::var_os("PRIVAULT_CONFIG_DIR").map(PathBuf::from);
+    #[cfg(not(any(debug_assertions, test)))]
+    let override_dir = None;
+    default_vault_dir_with_override(override_dir)
 }
 
 pub fn default_config_path() -> VaultResult<PathBuf> {
@@ -104,4 +130,26 @@ pub fn write_config_atomic(path: &Path, config: &AppConfig) -> VaultResult<()> {
         let _ = fs::remove_file(&temporary);
     }
     result
+}
+
+#[cfg(all(test, debug_assertions))]
+mod tests {
+    use super::default_vault_dir_with_override;
+    use crate::error::ErrorCode;
+    use std::path::PathBuf;
+
+    #[test]
+    fn debug_override_uses_an_absolute_isolated_directory() {
+        let isolated = std::env::temp_dir().join("privault-isolated-acceptance");
+        let resolved = default_vault_dir_with_override(Some(isolated.clone()))
+            .expect("absolute debug override should resolve");
+        assert_eq!(resolved, isolated);
+    }
+
+    #[test]
+    fn debug_override_rejects_relative_paths() {
+        let error = default_vault_dir_with_override(Some(PathBuf::from("relative-override")))
+            .expect_err("relative override must fail closed");
+        assert_eq!(error.code, ErrorCode::PathUnavailable);
+    }
 }
