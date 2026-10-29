@@ -217,6 +217,7 @@ pub(crate) fn summary(entry: &VaultEntry) -> EntrySummary {
         title: common.title.clone(),
         favorite: common.favorite,
         summary,
+        search_text: search_text(entry),
         updated_at: common.updated_at.clone(),
     }
 }

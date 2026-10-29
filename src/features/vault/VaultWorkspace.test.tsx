@@ -1,6 +1,7 @@
-import { fireEvent, render, screen, within } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { DemoVaultGateway } from "@/lib/demo-gateway";
 import { DEFAULT_SETTINGS } from "@/lib/settings";
 import { copyText } from "@/lib/clipboard";
 import type { VaultEntry } from "@/types/vault";
@@ -28,7 +29,7 @@ describe("VaultWorkspace", () => {
 
     await user.click(within(list).getByRole("button", { name: /演示银行卡/ }));
     const detail = screen.getByRole("region", { name: "条目详情" });
-    expect(within(detail).getByRole("heading", { name: "演示银行卡" })).toBeInTheDocument();
+    expect(await within(detail).findByRole("heading", { name: "演示银行卡" })).toBeInTheDocument();
     expect(within(detail).getByText("演示银行")).toBeInTheDocument();
   });
 
@@ -62,7 +63,7 @@ describe("VaultWorkspace", () => {
     const { user } = setup();
     copyMock.mockResolvedValue(true);
     expect(screen.queryByText("Demo-Not-A-Real-Password")).not.toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: "显示密码" }));
+    await user.click(await screen.findByRole("button", { name: "显示密码" }));
     expect(screen.getByText("Demo-Not-A-Real-Password")).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "复制密码" }));
     expect(copyMock).toHaveBeenCalledWith("Demo-Not-A-Real-Password");
@@ -74,7 +75,7 @@ describe("VaultWorkspace", () => {
   it("reports clipboard failure without exposing the value", async () => {
     const { user } = setup();
     copyMock.mockResolvedValue(false);
-    await user.click(screen.getByRole("button", { name: "复制密码" }));
+    await user.click(await screen.findByRole("button", { name: "复制密码" }));
     expect(await screen.findByRole("alert")).toHaveTextContent("复制失败，请检查系统权限");
     expect(screen.queryByRole("alert", { name: /Demo-Not/ })).not.toBeInTheDocument();
   });
@@ -82,7 +83,7 @@ describe("VaultWorkspace", () => {
   it("locks and clears the current workspace", async () => {
     const { user, onLock } = setup();
     await user.click(screen.getByRole("button", { name: "立即锁定" }));
-    expect(onLock).toHaveBeenCalledOnce();
+    await waitFor(() => expect(onLock).toHaveBeenCalledOnce());
   });
 
   it("distinguishes an empty vault from empty search results", async () => {
@@ -107,7 +108,7 @@ describe("VaultWorkspace", () => {
 
   it("edits the selected entry and toggles favorite", async () => {
     const { user } = setup();
-    await user.click(screen.getByRole("button", { name: "编辑" }));
+    await user.click(await screen.findByRole("button", { name: "编辑" }));
     await user.clear(screen.getByLabelText("标题"));
     await user.type(screen.getByLabelText("标题"), "更新后的 GitHub 演示");
     await user.click(screen.getByRole("button", { name: "保存项目" }));
@@ -118,7 +119,7 @@ describe("VaultWorkspace", () => {
 
   it("keeps or discards a dirty editor after confirmation", async () => {
     const { user } = setup();
-    await user.click(screen.getByRole("button", { name: "编辑" }));
+    await user.click(await screen.findByRole("button", { name: "编辑" }));
     await user.clear(screen.getByLabelText("标题"));
     await user.type(screen.getByLabelText("标题"), "未保存的演示修改");
     await user.click(screen.getByRole("button", { name: "关闭对话框" }));
@@ -133,17 +134,19 @@ describe("VaultWorkspace", () => {
   it("deletes and undoes deletion of an entry", async () => {
     const { user } = setup();
     const list = screen.getByRole("region", { name: "条目列表" });
+    await screen.findByRole("heading", { name: "示例 GitHub" });
     await user.click(screen.getByRole("button", { name: "删除" }));
     expect(screen.getByText(/将删除“示例 GitHub”/)).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "确认删除" }));
     expect(within(list).queryByText("示例 GitHub")).not.toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: "撤销" }));
-    expect(within(list).getByText("示例 GitHub")).toBeInTheDocument();
+    const undoButton = await screen.findByRole("button", { name: "撤销" });
+    await user.click(undoButton);
+    await waitFor(() => expect(within(list).getByText("示例 GitHub")).toBeInTheDocument());
   });
 
   it("requires confirmation before locking with unsaved edits", async () => {
     const { user, onLock } = setup();
-    await user.click(screen.getByRole("button", { name: "编辑" }));
+    await user.click(await screen.findByRole("button", { name: "编辑" }));
     await user.clear(screen.getByLabelText("标题"));
     await user.type(screen.getByLabelText("标题"), "未保存修改");
     await user.click(screen.getByRole("button", { name: "立即锁定" }));
@@ -175,7 +178,7 @@ describe("VaultWorkspace", () => {
     expect(screen.getByText("导出功能尚未接入安全核心，不会创建或写入任何文件。")).toBeInTheDocument();
   });
 
-  it("supports search, new-entry, and lock keyboard shortcuts", () => {
+  it("supports search, new-entry, and lock keyboard shortcuts", async () => {
     const onLock = vi.fn();
     render(<VaultWorkspace onLock={onLock} settings={DEFAULT_SETTINGS} onSettingsChange={vi.fn()} />);
     fireEvent.keyDown(window, { key: "k", ctrlKey: true });
@@ -183,16 +186,22 @@ describe("VaultWorkspace", () => {
     fireEvent.keyDown(window, { key: "n", ctrlKey: true });
     expect(screen.getByRole("dialog", { name: "选择条目类型" })).toBeInTheDocument();
     fireEvent.keyDown(window, { key: "l", ctrlKey: true, shiftKey: true });
-    expect(onLock).toHaveBeenCalledOnce();
+    await waitFor(() => expect(onLock).toHaveBeenCalledOnce());
   });
 
-  it("locks automatically after the configured inactivity period", () => {
+  it("locks automatically after the configured inactivity period", async () => {
     vi.useFakeTimers();
     const onLock = vi.fn();
     const { unmount } = render(<VaultWorkspace onLock={onLock} settings={DEFAULT_SETTINGS} onSettingsChange={vi.fn()} />);
-    vi.advanceTimersByTime(5 * 60_000);
+    await vi.advanceTimersByTimeAsync(5 * 60_000);
     expect(onLock).toHaveBeenCalledOnce();
     unmount();
     vi.useRealTimers();
+  });
+
+  it("hydrates entries from the gateway asynchronously", async () => {
+    const gateway = new DemoVaultGateway();
+    render(<VaultWorkspace gateway={gateway} onLock={vi.fn()} settings={DEFAULT_SETTINGS} onSettingsChange={vi.fn()} />);
+    expect(await within(screen.getByRole("region", { name: "条目列表" })).findByText("示例 GitHub")).toBeInTheDocument();
   });
 });

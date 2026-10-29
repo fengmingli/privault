@@ -1,5 +1,7 @@
 use crate::error::{ErrorCode, VaultError, VaultResult};
-use crate::model::{EntrySummary, RecoveryKeyResult, StorageLocation, VaultEntry, VaultStatus};
+use crate::model::{
+    EntrySummary, MigrationResult, RecoveryKeyResult, StorageLocation, VaultEntry, VaultStatus,
+};
 use crate::vault::VaultManager;
 use std::path::PathBuf;
 use std::sync::{Mutex, MutexGuard};
@@ -190,10 +192,11 @@ pub fn storage_choose_location() -> Option<String> {
 pub fn storage_prepare_migration(
     state: State<'_, Mutex<VaultManager>>,
     destination: String,
-) -> VaultResult<String> {
-    with_manager(&state, |manager| {
+) -> VaultResult<MigrationResult> {
+    let migration_id = with_manager(&state, |manager| {
         prepare_migration(manager, PathBuf::from(destination))
-    })
+    })?;
+    Ok(MigrationResult { migration_id })
 }
 
 #[tauri::command(rename_all = "camelCase")]

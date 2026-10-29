@@ -2,26 +2,27 @@ import { LockKeyhole, Settings, WandSparkles } from "lucide-react";
 import { BrandMark } from "@/components/BrandMark";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import type { Category, VaultEntry } from "@/types/vault";
+import type { Category, EntrySummary } from "@/types/vault";
 import { CATEGORIES } from "./entry-kind";
 
 interface VaultSidebarProps {
-  entries: VaultEntry[];
+  entries: EntrySummary[];
   category: Category;
   onCategory: (category: Category) => void;
   onLock: () => void;
   onGenerator: () => void;
+  demoMode: boolean;
   onSettings: () => void;
 }
 
-export function VaultSidebar({ entries, category, onCategory, onLock, onGenerator, onSettings }: VaultSidebarProps) {
+export function VaultSidebar({ entries, category, onCategory, onLock, onGenerator, onSettings, demoMode }: VaultSidebarProps) {
   return (
     <aside className="flex min-h-0 flex-col border-r bg-surface">
       <div className="flex h-20 items-center gap-3 border-b px-3 min-[1100px]:px-5">
         <BrandMark className="h-9 w-9 rounded-lg" />
-        <div className="hidden min-[1100px]:block">
+        <div className="sr-only min-[1100px]:not-sr-only">
           <p className="text-sm font-semibold tracking-tight">Privault</p>
-          <h2 className="mt-0.5 text-xs font-normal text-foreground-muted">演示保险库</h2>
+          <h2 className="mt-0.5 text-xs font-normal text-foreground-muted">{demoMode ? "演示保险库" : "本地保险库"}</h2>
         </div>
       </div>
       <nav aria-label="保险库分类" className="flex-1 space-y-1 overflow-y-auto p-2 min-[1100px]:p-3">

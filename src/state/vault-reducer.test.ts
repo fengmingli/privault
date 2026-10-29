@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { createEmptyEntry } from "@/lib/entry-utils";
+import { createDemoEntries } from "@/data/demo";
+import { createEmptyEntry, toEntrySummary } from "@/lib/entry-utils";
 import { createInitialVaultState, vaultReducer } from "@/state/vault-reducer";
 
 describe("vaultReducer", () => {
@@ -22,7 +23,7 @@ describe("vaultReducer", () => {
 
   it("replaces an existing entry by id", () => {
     const initial = createInitialVaultState();
-    const original = initial.entries[0];
+    const original = createDemoEntries()[0];
     const next = vaultReducer(initial, { type: "upsert", entry: { ...original, title: "更新后的演示标题" } });
     expect(next.entries).toHaveLength(initial.entries.length);
     expect(next.entries.find((entry) => entry.id === original.id)?.title).toBe("更新后的演示标题");
@@ -58,5 +59,13 @@ describe("vaultReducer", () => {
     expect(cleared.selectedId).toBeNull();
     expect(cleared.lastDeleted).toBeNull();
     expect(cleared.entries).toBe(initial.entries);
+  });
+
+  it("replaces demo entries from a gateway and selects the first visible entry", () => {
+    const initial = createInitialVaultState([]);
+    const entries = createDemoEntries();
+    const next = vaultReducer(initial, { type: "replace-entries", entries: entries.map(toEntrySummary) });
+    expect(next.entries).toHaveLength(4);
+    expect(next.selectedId).toBe("login-github");
   });
 });

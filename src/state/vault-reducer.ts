@@ -1,10 +1,10 @@
 import { createDemoEntries } from "@/data/demo";
-import { filterAndSortEntries } from "@/lib/entry-utils";
+import { filterAndSortEntries, toEntrySummary } from "@/lib/entry-utils";
 import type { VaultEntry, VaultState, VaultAction } from "@/types/vault";
 
 export function createInitialVaultState(entries?: VaultEntry[]): VaultState {
   const initial: VaultState = {
-    entries: entries ?? createDemoEntries(),
+    entries: entries ? entries.map(toEntrySummary) : createDemoEntries().map(toEntrySummary),
     selectedId: null,
     category: "all",
     query: "",
@@ -22,13 +22,14 @@ export function vaultReducer(state: VaultState, action: VaultAction): VaultState
     case "set-category":
       return { ...state, category: action.category };
     case "upsert": {
-      const exists = state.entries.some((entry) => entry.id === action.entry.id);
+      const saved = toEntrySummary(action.entry);
+      const exists = state.entries.some((entry) => entry.id === saved.id);
       return {
         ...state,
         entries: exists
-          ? state.entries.map((entry) => (entry.id === action.entry.id ? action.entry : entry))
-          : [...state.entries, action.entry],
-        selectedId: action.entry.id,
+          ? state.entries.map((entry) => (entry.id === saved.id ? saved : entry))
+          : [...state.entries, saved],
+        selectedId: saved.id,
         lastDeleted: null,
       };
     }
@@ -56,6 +57,10 @@ export function vaultReducer(state: VaultState, action: VaultAction): VaultState
       const index = Math.min(state.lastDeleted.index, entries.length);
       entries.splice(index, 0, state.lastDeleted.entry);
       return { ...state, entries, selectedId: state.lastDeleted.entry.id, lastDeleted: null };
+    }
+    case "replace-entries": {
+      const next = { ...state, entries: action.entries, lastDeleted: null };
+      return { ...next, selectedId: filterAndSortEntries(next)[0]?.id ?? null };
     }
     case "clear-sensitive-view":
       return { ...state, query: "", selectedId: null, lastDeleted: null };

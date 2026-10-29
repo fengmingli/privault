@@ -1,23 +1,37 @@
 import type { EntryKind, VaultEntry, VaultState } from "@/types/vault";
 
-export function compareEntries(a: VaultEntry, b: VaultEntry): number {
+type SortableEntry = Pick<VaultEntry, "favorite" | "title" | "updatedAt">;
+
+export function compareEntries(a: SortableEntry, b: SortableEntry): number {
   if (a.favorite !== b.favorite) return a.favorite ? -1 : 1;
   const dateDifference = Date.parse(b.updatedAt) - Date.parse(a.updatedAt);
   return dateDifference || a.title.localeCompare(b.title, "zh-CN");
 }
 
-function getEntrySearchText(entry: VaultEntry): string {
+export function getEntrySearchText(entry: VaultEntry): string {
   const common = [entry.title, entry.notes];
   if (entry.kind === "login") common.push(entry.username, entry.website);
   if (entry.kind === "note") common.push(entry.body);
   return common.join("\n").toLowerCase();
 }
 
-export function filterAndSortEntries(state: VaultState): VaultEntry[] {
+export function toEntrySummary(entry: VaultEntry): import("@/types/vault").EntrySummary {
+  return {
+    id: entry.id,
+    kind: entry.kind,
+    title: entry.title,
+    favorite: entry.favorite,
+    summary: getEntrySummary(entry),
+    updatedAt: entry.updatedAt,
+    searchText: getEntrySearchText(entry),
+  };
+}
+
+export function filterAndSortEntries(state: VaultState): import("@/types/vault").EntrySummary[] {
   const query = state.query.trim().toLowerCase();
   return state.entries
     .filter((entry) => state.category === "all" || entry.kind === state.category)
-    .filter((entry) => !query || getEntrySearchText(entry).includes(query))
+    .filter((entry) => !query || `${entry.title}\n${entry.summary}\n${entry.searchText}`.toLowerCase().includes(query))
     .sort(compareEntries);
 }
 

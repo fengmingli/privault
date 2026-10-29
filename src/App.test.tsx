@@ -59,7 +59,7 @@ describe("App access flows", () => {
     const user = userEvent.setup();
     render(<App />);
     await user.click(screen.getByRole("button", { name: "导入已有保险库" }));
-    expect(screen.getByText("迁移功能尚未接入，不会选择或写入任何文件。")).toBeInTheDocument();
+    expect(screen.getByText("本期不支持导入或导出保险库文件，不会选择或写入任何文件。")).toBeInTheDocument();
   });
 
   it("validates demo recovery access without claiming a real reset", async () => {
@@ -76,6 +76,8 @@ describe("App access flows", () => {
     await user.clear(screen.getByLabelText("演示恢复密钥"));
     await user.type(screen.getByLabelText("演示恢复密钥"), "DEMO-4C7Q-9M2X-6K8P");
     await user.click(screen.getByRole("button", { name: "验证演示恢复信息" }));
+    await user.click(screen.getByLabelText("我已离线保存新恢复密钥"));
+    await user.click(screen.getByRole("button", { name: "返回解锁" }));
     expect(screen.getByText("界面验证已通过，未修改任何真实保险库。")).toBeInTheDocument();
     expect(screen.getByLabelText("演示密码")).toBeInTheDocument();
   });

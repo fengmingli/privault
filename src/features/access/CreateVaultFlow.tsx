@@ -2,34 +2,62 @@ import { useState, type FormEvent } from "react";
 import { Check, Copy, Printer, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { copyText } from "@/lib/clipboard";
-import { DEMO_RECOVERY_KEY, validateMasterPassword } from "@/lib/validation";
+import { validateMasterPassword } from "@/lib/validation";
+import type { RecoveryKeyResult } from "@/lib/vault-client";
+import { DEMO_RECOVERY_KEY } from "@/lib/validation";
 
 interface CreateVaultFlowProps {
   onBack: () => void;
-  onComplete: () => void;
+  onCreate: (password: string) => Promise<RecoveryKeyResult>;
+  onComplete: (password: string) => Promise<void>;
+  demoMode: boolean;
 }
 
-export function CreateVaultFlow({ onBack, onComplete }: CreateVaultFlowProps) {
+export function CreateVaultFlow({ onBack, onCreate, onComplete, demoMode }: CreateVaultFlowProps) {
   const [step, setStep] = useState<1 | 2>(1);
   const [password, setPassword] = useState("");
   const [confirmation, setConfirmation] = useState("");
+  const [recoveryKey, setRecoveryKey] = useState(demoMode ? DEMO_RECOVERY_KEY : "");
   const [error, setError] = useState("");
   const [confirmed, setConfirmed] = useState(false);
   const [copyStatus, setCopyStatus] = useState("");
+  const [busy, setBusy] = useState(false);
 
-  function continueToRecovery(event: FormEvent) {
+  async function continueToRecovery(event: FormEvent) {
     event.preventDefault();
     const validationError = validateMasterPassword(password, confirmation);
     if (validationError) {
       setError(validationError);
       return;
     }
-    setStep(2);
+    setBusy(true);
+    setError("");
+    try {
+      const result = await onCreate(password);
+      setRecoveryKey(result.recoveryKey);
+      setStep(2);
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : "无法创建保险库");
+    } finally {
+      setBusy(false);
+    }
   }
 
   async function copyRecoveryKey() {
-    const copied = await copyText(DEMO_RECOVERY_KEY);
-    setCopyStatus(copied ? "演示恢复密钥已复制" : "复制失败，请检查系统权限");
+    const copied = await copyText(recoveryKey);
+    setCopyStatus(copied ? "恢复密钥已复制" : "复制失败，请检查系统权限");
+  }
+
+  async function complete() {
+    setBusy(true);
+    setError("");
+    try {
+      await onComplete(password);
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : "无法解锁新保险库");
+    } finally {
+      setBusy(false);
+    }
   }
 
   if (step === 2) {
@@ -38,12 +66,12 @@ export function CreateVaultFlow({ onBack, onComplete }: CreateVaultFlowProps) {
         <div className="space-y-2">
           <p className="text-xs font-medium text-primary">步骤 2 / 2</p>
           <h2 className="text-2xl font-semibold tracking-tight">保存恢复密钥</h2>
-          <p className="text-sm leading-6 text-foreground-muted">真实产品中它用于重置主密码。以下仅为不可用的演示示例。</p>
+          <p className="text-sm leading-6 text-foreground-muted">{demoMode ? "真实产品中它用于重置主密码。请离线保存此密钥。" : "它用于重置主密码。请离线保存此密钥。"}</p>
         </div>
         <div data-print-recovery className="rounded-lg border bg-background p-5 text-center">
           <ShieldCheck className="mx-auto mb-3 h-6 w-6 text-primary" aria-hidden="true" />
-          <p className="mb-2 text-xs font-medium text-danger">UI 原型示例，不可用于真实恢复</p>
-          <code className="mono break-all text-sm font-semibold tracking-wider">{DEMO_RECOVERY_KEY}</code>
+          <p className="mb-2 text-xs font-medium text-danger">{demoMode ? "UI 原型示例，不可用于真实恢复" : "恢复密钥仅显示一次"}</p>
+          <code className="mono break-all text-sm font-semibold tracking-wider">{recoveryKey}</code>
         </div>
         <div className="grid grid-cols-2 gap-3">
           <Button type="button" variant="outline" onClick={copyRecoveryKey}><Copy className="mr-2 h-4 w-4" aria-hidden="true" />复制</Button>
@@ -52,11 +80,12 @@ export function CreateVaultFlow({ onBack, onComplete }: CreateVaultFlowProps) {
         {copyStatus && <p role="status" className="text-center text-sm text-foreground-muted">{copyStatus}</p>}
         <label className="flex cursor-pointer items-start gap-3 text-sm leading-5">
           <input type="checkbox" checked={confirmed} onChange={(event) => setConfirmed(event.target.checked)} className="mt-0.5 h-4 w-4 accent-primary" />
-          <span>我已离线保存此演示恢复密钥</span>
+          <span>{demoMode ? "我已离线保存此演示恢复密钥" : "我已离线保存恢复密钥"}</span>
         </label>
+        {error && <p role="alert" className="text-sm text-danger">{error}</p>}
         <div className="flex gap-3">
           <Button type="button" variant="ghost" onClick={() => setStep(1)}>返回</Button>
-          <Button type="button" className="flex-1" disabled={!confirmed} onClick={onComplete}><Check className="mr-2 h-4 w-4" aria-hidden="true" />进入演示保险库</Button>
+          <Button type="button" className="flex-1" disabled={!confirmed || busy} onClick={complete}><Check className="mr-2 h-4 w-4" aria-hidden="true" />{demoMode ? "进入演示保险库" : "解锁保险库"}</Button>
         </div>
       </div>
     );
@@ -66,21 +95,21 @@ export function CreateVaultFlow({ onBack, onComplete }: CreateVaultFlowProps) {
     <div className="space-y-6">
       <div className="space-y-2">
         <p className="text-xs font-medium text-primary">步骤 1 / 2</p>
-        <h2 className="text-2xl font-semibold tracking-tight">创建演示保险库</h2>
-        <p className="text-sm leading-6 text-foreground-muted">仅验证界面流程，请使用虚构密码。</p>
+        <h2 className="text-2xl font-semibold tracking-tight">{demoMode ? "创建演示保险库" : "创建保险库"}</h2>
+        <p className="text-sm leading-6 text-foreground-muted">{demoMode ? "仅验证界面流程，请使用虚构密码。" : "主密码只用于本地密钥派生，不会上传或单独保存。"}</p>
       </div>
       <form onSubmit={continueToRecovery} className="space-y-4" noValidate>
         <div className="space-y-2">
-          <label htmlFor="new-demo-password" className="text-sm font-medium">设置主密码（仅演示）</label>
-          <input id="new-demo-password" type="password" value={password} onChange={(event) => { setPassword(event.target.value); setError(""); }} className="control" autoComplete="off" autoFocus />
-          <p className="text-xs text-foreground-muted">至少 12 位，不会保存或用于真实加密。</p>
+          <label htmlFor="new-demo-password" className="text-sm font-medium">{demoMode ? "设置主密码（仅演示）" : "设置主密码"}</label>
+          <input id="new-demo-password" type="password" value={password} onChange={(event) => { setPassword(event.target.value); setError(""); }} className="control" autoComplete="off" autoFocus disabled={busy} />
+          <p className="text-xs text-foreground-muted">{demoMode ? "至少 12 位，不会保存或用于真实加密。" : "至少 12 位；仅用于本机密钥派生，不会单独保存。"}</p>
         </div>
         <div className="space-y-2">
           <label htmlFor="confirm-demo-password" className="text-sm font-medium">确认主密码</label>
-          <input id="confirm-demo-password" type="password" value={confirmation} onChange={(event) => { setConfirmation(event.target.value); setError(""); }} className="control" autoComplete="off" />
+          <input id="confirm-demo-password" type="password" value={confirmation} onChange={(event) => { setConfirmation(event.target.value); setError(""); }} className="control" autoComplete="off" disabled={busy} />
         </div>
         {error && <p role="alert" className="text-sm text-danger">{error}</p>}
-        <Button type="submit" className="w-full">继续</Button>
+        <Button type="submit" className="w-full" disabled={busy}>{busy ? "正在创建…" : "继续"}</Button>
         <Button type="button" variant="ghost" className="w-full" onClick={onBack}>返回</Button>
       </form>
     </div>

@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { isValidDemoRecoveryKey, validateMasterPassword } from "./validation";
+import { isValidDemoRecoveryKey, isValidRecoveryKey, validateMasterPassword } from "./validation";
 
 describe("access validation", () => {
   it("rejects passwords shorter than 12 characters", () => {
-    expect(validateMasterPassword("short", "short")).toBe("请使用至少 12 位的演示主密码");
+    expect(validateMasterPassword("short", "short")).toBe("请使用至少 12 位的主密码");
   });
 
   it("rejects mismatched password confirmation", () => {
@@ -18,5 +18,12 @@ describe("access validation", () => {
     expect(isValidDemoRecoveryKey("  demo-4c7q-9m2x-6k8p ")).toBe(true);
     expect(isValidDemoRecoveryKey("REAL-4C7Q-9M2X-6K8P")).toBe(false);
     expect(isValidDemoRecoveryKey("DEMO-4C7Q-9M2X")).toBe(false);
+  });
+
+  it("accepts the generated Crockford Base32 recovery-key shape without using demo rules", () => {
+    const groupedKey = `${Array.from({ length: 14 }, () => "aaaa").join("-")}-aa`;
+    expect(isValidRecoveryKey(groupedKey)).toBe(true);
+    expect(isValidRecoveryKey("DEMO-4C7Q-9M2X-6K8P")).toBe(false);
+    expect(isValidRecoveryKey("AAAA")).toBe(false);
   });
 });

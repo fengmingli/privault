@@ -1,13 +1,12 @@
 import type { RefObject } from "react";
 import { Plus, Search, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { getEntrySummary } from "@/lib/entry-utils";
 import { cn } from "@/lib/utils";
-import type { VaultEntry } from "@/types/vault";
+import type { EntrySummary } from "@/types/vault";
 import { ENTRY_KIND_META } from "./entry-kind";
 
 interface EntryListPaneProps {
-  entries: VaultEntry[];
+  entries: EntrySummary[];
   totalCount: number;
   selectedId: string | null;
   query: string;
@@ -49,7 +48,7 @@ export function EntryListPane({ entries, totalCount, selectedId, query, onQuery,
                           <span className="truncate text-sm font-medium">{entry.title}</span>
                           {entry.favorite && <><Star className="h-3.5 w-3.5 shrink-0 fill-current text-primary" aria-hidden="true" /><span className="sr-only">已收藏</span></>}
                         </span>
-                        <span className="mt-1 block truncate text-xs text-foreground-muted">{getEntrySummary(entry)}</span>
+                        <span className="mt-1 block truncate text-xs text-foreground-muted">{entry.summary}</span>
                         <span className="mt-2 block text-[11px] text-foreground-muted/80">{label}</span>
                       </span>
                     </span>

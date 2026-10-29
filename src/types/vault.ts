@@ -58,12 +58,22 @@ export interface IdentityEntry extends BaseEntry {
 
 export type VaultEntry = LoginEntry | NoteEntry | CardEntry | IdentityEntry;
 
+export interface EntrySummary {
+  id: string;
+  kind: EntryKind;
+  title: string;
+  favorite: boolean;
+  summary: string;
+  updatedAt: string;
+  searchText: string;
+}
+
 export interface VaultState {
-  entries: VaultEntry[];
+  entries: EntrySummary[];
   selectedId: string | null;
   category: Category;
   query: string;
-  lastDeleted: { entry: VaultEntry; index: number } | null;
+  lastDeleted: { entry: EntrySummary; index: number } | null;
 }
 
 export type VaultAction =
@@ -74,4 +84,5 @@ export type VaultAction =
   | { type: "toggle-favorite"; id: string }
   | { type: "remove"; id: string }
   | { type: "undo-delete" }
+  | { type: "replace-entries"; entries: EntrySummary[] }
   | { type: "clear-sensitive-view" };

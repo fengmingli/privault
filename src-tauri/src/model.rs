@@ -176,6 +176,7 @@ pub struct EntrySummary {
     pub title: String,
     pub favorite: bool,
     pub summary: String,
+    pub search_text: String,
     pub updated_at: String,
 }
 
@@ -211,6 +212,12 @@ pub struct AppConfig {
 }
 
 pub type MigrationId = String;
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct MigrationResult {
+    pub migration_id: MigrationId,
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
