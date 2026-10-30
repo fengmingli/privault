@@ -177,6 +177,10 @@ Task 8 新增生产依赖 `@tauri-apps/api`，用于前端网关调用受限 Rus
 - `src-tauri/src/config.rs` 新增仅 debug/test 生效的 `PRIVAULT_CONFIG_DIR` 隔离覆盖；release 构建忽略该环境变量。
 - 覆盖值必须为绝对路径，并同时决定默认配置和初始保险库目录，避免测试误写真实默认保险库。
 - 新增绝对路径接受和相对路径拒绝测试；没有通过全局环境变量并发测试，避免测试间交叉污染。
+- 通过 `npx tauri build --debug --bundles app` 成功构建隔离用 `Privault.app`（38.30 MiB），没有生成安装包。
+- 新增 `scripts/verify-local-vault.sh`、`tests/desktop-smoke.mjs` 和 `npm run test:desktop`：使用独立临时目录、虚构凭据和条目，执行创建、重启、解锁、原生路径迁移、再解锁及明文扫描。
+- 脚本只启动自己创建的 Appium 进程并只清理自己的临时目录；WebdriverIO 使用静默日志，失败仅报告阶段并保存测试截图，不打印密码或条目内容。
+- `node --check tests/desktop-smoke.mjs` 与 `bash -n scripts/verify-local-vault.sh` 通过；实际桌面脚本在 Xcode 预检处停止，尚未创建 Appium 会话。
 
 ## 4. 验证记录
 
@@ -192,6 +196,7 @@ Task 8 新增生产依赖 `@tauri-apps/api`，用于前端网关调用受限 Rus
 | `cargo fmt --check` | 通过 |
 | `cargo clippy --all-targets -- -D warnings` | 通过 |
 | `cargo check --release` | 通过，确认 release 配置可编译 |
+| `npm run test:desktop` | **预检阻塞**：完整 Xcode 不可用，未启动 Appium 会话，不能记为桌面验收通过 |
 
 测试数据边界：
 
