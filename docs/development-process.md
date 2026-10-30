@@ -1,6 +1,6 @@
 # Privault 开发过程记录
 
-最后更新：2026-10-29（UTC）  
+最后更新：2026-10-30（UTC）
 工作分支：`feature/frontend-ui`  
 工作目录：`.worktrees/frontend-ui`
 
@@ -28,7 +28,8 @@
 | WebdriverIO | 10.1.0 | 2026-10-29 执行 `npm install -D webdriverio --registry=https://registry.npmjs.org` | 已作为开发依赖写入 `package.json` 和 `package-lock.json` |
 | Appium | 3.9.0 | 2026-10-29 经用户批准后执行项目本地 npm 安装 | 已作为开发依赖安装，`npx appium --version` 验证通过 |
 | Appium Mac2 Driver | 4.5.1 | 与 Appium 一同作为项目开发依赖安装 | `npx appium driver list` 显示 `mac2@4.5.1 [installed (npm)]` |
-| mas（Mac App Store CLI） | 7.0.0 | 通过 `brew install mas` 安装，用于尝试安装官方 Xcode | 工具已安装；Xcode 安装因需要交互式管理员认证而等待用户操作 |
+| mas（Mac App Store CLI） | 7.0.0 | 通过 `brew install mas` 安装，用于尝试安装官方 Xcode | 工具已安装；用户随后通过 App Store 完成 Xcode 安装 |
+| Xcode | 27.2（27B52） | 用户通过 Apple App Store 安装并完成系统认证 | 已安装；首次许可尚未同意，真实桌面构建暂被阻塞 |
 
 补充说明：
 
@@ -182,6 +183,13 @@ Task 8 新增生产依赖 `@tauri-apps/api`，用于前端网关调用受限 Rus
 - 脚本只启动自己创建的 Appium 进程并只清理自己的临时目录；WebdriverIO 使用静默日志，失败仅报告阶段并保存测试截图，不打印密码或条目内容。
 - `node --check tests/desktop-smoke.mjs` 与 `bash -n scripts/verify-local-vault.sh` 通过；实际桌面脚本在 Xcode 预检处停止，尚未创建 Appium 会话。
 
+### 3.5 2026-10-30：Xcode 安装与首次许可
+
+- 用户通过 App Store 完成 Xcode 27.2（27B52）安装，应用位于 `/Applications/Xcode.app`。
+- 验收脚本在系统默认 `xcodebuild` 不可用时，自动设置 `DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer`，不修改系统级 `xcode-select`。
+- 使用该目录执行 `npx appium driver doctor mac2`，结果为 **0 个必需修复项**；ffmpeg 和 Automation Mode 认证仍是可选项，未处理。
+- 首次执行真实桌面脚本时，Rust 链接阶段确认 Apple SDK 许可尚未同意。已打开 Xcode 图形界面，等待用户接受许可和完成首次启动组件安装；尚未进入 Appium 会话。
+
 ## 4. 验证记录
 
 最近一次完整非桌面验证（Appium 环境准备及隔离配置修改后）：
@@ -196,7 +204,7 @@ Task 8 新增生产依赖 `@tauri-apps/api`，用于前端网关调用受限 Rus
 | `cargo fmt --check` | 通过 |
 | `cargo clippy --all-targets -- -D warnings` | 通过 |
 | `cargo check --release` | 通过，确认 release 配置可编译 |
-| `npm run test:desktop` | **预检阻塞**：完整 Xcode 不可用，未启动 Appium 会话，不能记为桌面验收通过 |
+| `npm run test:desktop` | **构建阻塞**：Xcode 27.2 已安装，但 Apple SDK 许可尚未接受；未启动 Appium 会话，不能记为桌面验收通过 |
 
 测试数据边界：
 
@@ -208,7 +216,7 @@ Task 8 新增生产依赖 `@tauri-apps/api`，用于前端网关调用受限 Rus
 
 ### 5.1 macOS 桌面自动化阻塞
 
-原 Task 10 计划假设 `tauri-driver + safaridriver` 可覆盖 macOS，但已安装的 `tauri-driver 2.1.0` 源码证明该假设不成立。随后已按用户批准安装项目本地 Appium 3.9.0 和 Mac2 Driver 4.5.1；完整 Xcode 安装仍等待 App Store 交互式认证，真实桌面自动化验收尚未运行。
+原 Task 10 计划假设 `tauri-driver + safaridriver` 可覆盖 macOS，但已安装的 `tauri-driver 2.1.0` 源码证明该假设不成立。随后已安装项目本地 Appium 3.9.0、Mac2 Driver 4.5.1 和完整 Xcode 27.2；Mac2 doctor 已无必需修复项。当前阻塞为 Xcode 首次许可和随后的系统自动化授权，真实桌面自动化验收尚未运行。
 
 当前采用 Appium 评估路线，仍需完成：
 

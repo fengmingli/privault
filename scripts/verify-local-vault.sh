@@ -8,6 +8,9 @@ if [[ "$(uname -s)" != "Darwin" ]]; then
   echo "此验收脚本当前仅用于 macOS Appium Mac2。"
   exit 1
 fi
+if ! xcodebuild -version >/dev/null 2>&1 && [[ -d /Applications/Xcode.app/Contents/Developer ]]; then
+  export DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer
+fi
 if ! xcodebuild -version >/dev/null 2>&1; then
   echo "完整 Xcode 尚未安装或未配置；无法启动 Mac2 WebDriverAgent。"
   exit 1
