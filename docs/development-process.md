@@ -208,6 +208,14 @@ Task 8 新增生产依赖 `@tauri-apps/api`，用于前端网关调用受限 Rus
 
 真实模式横幅已从“验证中”改为“本地加密存储 · 完全离线”，应用窗口与 HTML 标题移除“UI 原型”，README 更新为真实加密存储、验证命令、平台证据和剩余排除项。
 
+### 3.7 2026-10-31：release 应用本机安装
+
+- 执行 `npx tauri build --bundles app`，release 构建成功，生成 16.39 MiB 的 `Privault.app`；没有生成 DMG/PKG 安装包。
+- 初始 bundle 的临时签名未通过 `codesign --verify --deep --strict`，因此在本地执行 `codesign --force --deep --sign -` 重新进行 ad-hoc 签名。
+- 重新签名及安装副本均通过严格校验。签名状态为 **ad-hoc、TeamIdentifier 未设置**，不是 Apple Developer 签名或 Apple 公证。
+- 应用安装到 `~/Applications/Privault.app`，无需管理员权限，并已通过 `open` 启动且确认进程运行。
+- 安装和启动过程没有创建、读取或修改真实保险库内容；用户首次创建或解锁由本人操作。
+
 ## 4. 验证记录
 
 最近一次完整验证（2026-10-31，含真实桌面）：
@@ -223,6 +231,8 @@ Task 8 新增生产依赖 `@tauri-apps/api`，用于前端网关调用受限 Rus
 | `cargo clippy --all-targets -- -D warnings` | 通过 |
 | `cargo check --release` | 通过，确认 release 配置可编译 |
 | `npm run test:desktop` | **通过**：macOS 真实创建、两次重启、解锁、迁移、条目一致性及明文扫描 |
+| release `.app` 构建 | 通过，16.39 MiB；ad-hoc 本机签名严格校验通过 |
+| 本机安装 | 已安装到 `~/Applications/Privault.app` 并启动 |
 | 网络 API 扫描 | `fetch`、Axios、XMLHttpRequest、WebSocket 无匹配 |
 | Rust 日志扫描 | 无 `println!` / `eprintln!` / `dbg!` / 日志宏；`log::` 仅命中 `rfd::FileDialog` 的名称片段 |
 | 前端文件 API 扫描 | `fs::`、`read_to_string`、`write(` 无匹配 |

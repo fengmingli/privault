@@ -63,6 +63,23 @@ npx tauri dev
 
 前端没有任意文件系统、shell、网络、更新器或远程资源权限。
 
+## 本机安装 release 应用
+
+```bash
+npx tauri build --bundles app
+mkdir -p "$HOME/Applications"
+ditto src-tauri/target/release/bundle/macos/Privault.app "$HOME/Applications/Privault.app"
+open "$HOME/Applications/Privault.app"
+```
+
+如果构建产物未通过 `codesign --verify --deep --strict`，可在本机重新进行 ad-hoc 签名后重试：
+
+```bash
+codesign --force --deep --sign - src-tauri/target/release/bundle/macos/Privault.app
+```
+
+当前安装方式不是 Apple Developer 签名或公证，不包含自动更新。安装不会创建或修改保险库；首次创建、主密码和恢复密钥由用户本人处理。
+
 ## 验证
 
 ### 前端与 Rust
