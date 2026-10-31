@@ -20,6 +20,7 @@ fn populated(kind: EntryKind) -> VaultEntry {
             card.cardholder = "演示用户".into();
             card.card_number = "0000 0000 0000 0000".into();
             card.expiry = "01/30".into();
+            card.cvv = "000".into();
             card.bank = "演示银行".into();
         }
         VaultEntry::Identity(identity) => {
@@ -90,6 +91,65 @@ fn persists_all_entry_kinds_and_custom_fields() {
         let entry = get_entry(&db, &summary.id).unwrap();
         assert_eq!(entry.common().custom_fields.len(), 1);
     }
+}
+
+#[test]
+fn rejects_invalid_core_entry_fields() {
+    let dir = tempfile::TempDir::new().unwrap();
+    let path = dir.path().join("vault.db");
+    let mut db = open_database(&path, &Dek::new_for_test()).unwrap();
+
+    let VaultEntry::Login(mut login) = populated(EntryKind::Login) else {
+        panic!("wrong kind")
+    };
+    login.username = " ".into();
+    assert!(upsert_entry(&mut db, VaultEntry::Login(login)).is_err());
+
+    let VaultEntry::Note(mut note) = populated(EntryKind::Note) else {
+        panic!("wrong kind")
+    };
+    note.body = "  ".into();
+    assert!(upsert_entry(&mut db, VaultEntry::Note(note)).is_err());
+
+    let VaultEntry::Card(mut card) = populated(EntryKind::Card) else {
+        panic!("wrong kind")
+    };
+    card.card_number = "1234 5678 9012".into();
+    assert!(upsert_entry(&mut db, VaultEntry::Card(card)).is_err());
+
+    let VaultEntry::Identity(mut identity) = populated(EntryKind::Identity) else {
+        panic!("wrong kind")
+    };
+    identity.document_number = " ".into();
+    assert!(upsert_entry(&mut db, VaultEntry::Identity(identity)).is_err());
+}
+
+#[test]
+fn rejects_expired_cards_and_invalid_identity_dates() {
+    let dir = tempfile::TempDir::new().unwrap();
+    let path = dir.path().join("vault.db");
+    let mut db = open_database(&path, &Dek::new_for_test()).unwrap();
+
+    let VaultEntry::Card(mut card) = populated(EntryKind::Card) else {
+        panic!("wrong kind")
+    };
+    card.expiry = "01/20".into();
+    assert!(upsert_entry(&mut db, VaultEntry::Card(card)).is_err());
+
+    let VaultEntry::Identity(mut identity) = populated(EntryKind::Identity) else {
+        panic!("wrong kind")
+    };
+    identity.issued_at = "2026-02-30".into();
+    assert!(upsert_entry(&mut db, VaultEntry::Identity(identity)).is_err());
+}
+
+#[test]
+fn accepts_valid_core_entries() {
+    let dir = tempfile::TempDir::new().unwrap();
+    let path = dir.path().join("vault.db");
+    let mut db = open_database(&path, &Dek::new_for_test()).unwrap();
+    upsert_entry(&mut db, populated(EntryKind::Card)).unwrap();
+    assert_eq!(list_entries(&db).unwrap().len(), 1);
 }
 
 #[test]

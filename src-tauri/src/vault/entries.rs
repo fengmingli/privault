@@ -3,6 +3,7 @@ use crate::model::{
     CommonFields, CustomField, CustomFieldKind, EntryKind, EntrySummary, PasswordHistoryItem,
     VaultEntry,
 };
+use chrono::{Datelike, NaiveDate, Utc};
 use rusqlite::{Connection, Row};
 use serde_json::{json, Value};
 
@@ -240,6 +241,46 @@ pub(crate) fn field_kind(field: &CustomField) -> &'static str {
     field_kind_name(field.kind)
 }
 
+fn luhn_valid(digits: &str) -> bool {
+    if !(12..=19).contains(&digits.len()) || !digits.chars().all(|c| c.is_ascii_digit()) {
+        return false;
+    }
+    let mut sum = 0;
+    let mut double = false;
+    for character in digits.chars().rev() {
+        let mut digit = character.to_digit(10).unwrap();
+        if double {
+            digit *= 2;
+            if digit > 9 {
+                digit -= 9;
+            }
+        }
+        sum += digit;
+        double = !double;
+    }
+    sum % 10 == 0
+}
+
+fn expiry_shape_valid(value: &str) -> bool {
+    value.len() == 5
+        && &value[2..3] == "/"
+        && value[..2]
+            .parse::<u8>()
+            .map(|month| (1..=12).contains(&month))
+            .unwrap_or(false)
+        && value[3..].chars().all(|c| c.is_ascii_digit())
+}
+
+fn expiry_not_expired(value: &str, current_year: i32, current_month: u32) -> bool {
+    let month = value[..2].parse::<u32>().unwrap();
+    let year = 2000 + value[3..].parse::<i32>().unwrap();
+    year > current_year || (year == current_year && month >= current_month)
+}
+
+fn iso_date_valid(value: &str) -> bool {
+    NaiveDate::parse_from_str(value, "%Y-%m-%d").is_ok()
+}
+
 pub fn validate_entry(entry: &VaultEntry) -> VaultResult<()> {
     let invalid = |message: &str| VaultError::new(ErrorCode::InvalidInput, message.to_string());
     let common = entry.common();
@@ -270,28 +311,61 @@ pub fn validate_entry(entry: &VaultEntry) -> VaultResult<()> {
     }
     match entry {
         VaultEntry::Login(login) => {
+            if login.username.trim().is_empty() {
+                return Err(invalid("请输入用户名"));
+            }
             if login.username.chars().count() > 320 {
                 return Err(invalid("用户名不能超过 320 个字符"));
+            }
+            if login.password.is_empty() {
+                return Err(invalid("请输入密码"));
+            }
+            if login.password.chars().count() > 4096 {
+                return Err(invalid("密码不能超过 4096 个字符"));
             }
             if login.website.chars().count() > 2048 {
                 return Err(invalid("网站地址不能超过 2048 个字符"));
             }
         }
         VaultEntry::Card(card) => {
-            if !card.expiry.is_empty() {
-                let valid = card.expiry.len() == 5
-                    && &card.expiry[2..3] == "/"
-                    && card.expiry[..2]
-                        .parse::<u8>()
-                        .map(|month| (1..=12).contains(&month))
-                        .unwrap_or(false)
-                    && card.expiry[3..].chars().all(|c| c.is_ascii_digit());
-                if !valid {
-                    return Err(invalid("有效期格式应为 MM/YY"));
-                }
+            if card.card_number.trim().is_empty() {
+                return Err(invalid("请输入卡号"));
+            }
+            let digits = card
+                .card_number
+                .chars()
+                .filter(|c| *c != ' ')
+                .collect::<String>();
+            if !luhn_valid(&digits) {
+                return Err(invalid("卡号格式不正确"));
+            }
+            if card.expiry.is_empty() {
+                return Err(invalid("请输入有效期"));
+            }
+            if !expiry_shape_valid(&card.expiry) {
+                return Err(invalid("有效期格式应为 MM/YY"));
+            }
+            let now = Utc::now();
+            if !expiry_not_expired(&card.expiry, now.year(), now.month()) {
+                return Err(invalid("有效期不能早于当前月份"));
+            }
+            if card.cvv.is_empty() {
+                return Err(invalid("请输入安全码"));
+            }
+            if !(3..=4).contains(&card.cvv.len()) || !card.cvv.chars().all(|c| c.is_ascii_digit()) {
+                return Err(invalid("安全码应为 3-4 位数字"));
             }
         }
         VaultEntry::Identity(identity) => {
+            if identity.document_number.trim().is_empty() {
+                return Err(invalid("请输入证件号码"));
+            }
+            if !identity.issued_at.is_empty() && !iso_date_valid(&identity.issued_at) {
+                return Err(invalid("日期格式应为 YYYY-MM-DD"));
+            }
+            if !identity.expires_at.is_empty() && !iso_date_valid(&identity.expires_at) {
+                return Err(invalid("日期格式应为 YYYY-MM-DD"));
+            }
             if !identity.issued_at.is_empty()
                 && !identity.expires_at.is_empty()
                 && identity.expires_at < identity.issued_at
@@ -299,7 +373,14 @@ pub fn validate_entry(entry: &VaultEntry) -> VaultResult<()> {
                 return Err(invalid("到期日期不能早于签发日期"));
             }
         }
-        VaultEntry::Note(_) => {}
+        VaultEntry::Note(note) => {
+            if note.body.trim().is_empty() {
+                return Err(invalid("请输入笔记内容"));
+            }
+            if note.body.chars().count() > 10_000 {
+                return Err(invalid("笔记内容不能超过 10000 个字符"));
+            }
+        }
     }
     Ok(())
 }

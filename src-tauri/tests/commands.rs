@@ -29,6 +29,10 @@ fn command_writes_serialize_through_manager_mutex() {
         handles.push(std::thread::spawn(move || {
             let mut entry = VaultEntry::new_empty_for_test(EntryKind::Note);
             entry.common_mut().title = format!("并发条目-{index}");
+            let VaultEntry::Note(note) = &mut entry else {
+                panic!("wrong kind")
+            };
+            note.body = "并发笔记正文".into();
             commands::upsert(&mut manager.lock().unwrap(), entry).unwrap();
         }));
     }

@@ -27,6 +27,10 @@ impl Fixture {
         manager.unlock("Master-pass1!".into()).unwrap();
         let mut entry = VaultEntry::new_empty_for_test(EntryKind::Note);
         entry.common_mut().title = "迁移验证条目".into();
+        let VaultEntry::Note(note) = &mut entry else {
+            panic!("wrong kind")
+        };
+        note.body = "迁移验证正文".into();
         manager.upsert_entry(entry).unwrap();
         manager.set_migration_fs_for_test(fs);
         Self {

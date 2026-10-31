@@ -4,6 +4,10 @@ use privault_ui_lib::vault::VaultManager;
 fn note(title: &str) -> VaultEntry {
     let mut entry = VaultEntry::new_empty_for_test(EntryKind::Note);
     entry.common_mut().title = title.into();
+    let VaultEntry::Note(note) = &mut entry else {
+        panic!("wrong kind")
+    };
+    note.body = "测试笔记正文".into();
     entry
 }
 
