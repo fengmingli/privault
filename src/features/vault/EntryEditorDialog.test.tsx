@@ -21,4 +21,18 @@ describe("EntryEditorDialog", () => {
     expect(onSave).toHaveBeenCalledOnce();
     expect(onSave.mock.calls[0][0]).toMatchObject({ kind: "login", title: "新演示登录", username: "new@example.com" });
   });
+
+  it("shows core card errors and blocks saving", async () => {
+    const user = userEvent.setup();
+    const onSave = vi.fn();
+    render(<EntryEditorDialog open entry={null} kind="card" onSave={onSave} onClose={vi.fn()} onDirtyChange={vi.fn()} />);
+    await user.type(screen.getByLabelText("标题"), "无效银行卡");
+    await user.type(screen.getByLabelText("卡号"), "1234 5678 9012");
+    await user.type(screen.getByLabelText("有效期"), "10/26");
+    await user.type(screen.getByLabelText("安全码"), "12");
+    await user.click(screen.getByRole("button", { name: "保存项目" }));
+    expect(screen.getByText("卡号格式不正确")).toBeInTheDocument();
+    expect(screen.getByText("安全码应为 3-4 位数字")).toBeInTheDocument();
+    expect(onSave).not.toHaveBeenCalled();
+  });
 });

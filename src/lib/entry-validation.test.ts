@@ -33,6 +33,29 @@ describe("entry validation", () => {
     expect(validateEntry({ ...identity, issuedAt: "2031-01-01", expiresAt: "2030-01-01" }).identityDates).toBe("到期日期不能早于签发日期");
   });
 
+  it("requires login username, password, and note body", () => {
+    const login = entryOfKind("login");
+    expect(validateEntry({ ...login, username: " " }).username).toBe("请输入用户名");
+    expect(validateEntry({ ...login, password: "" }).password).toBe("请输入密码");
+    const note = entryOfKind("note");
+    expect(validateEntry({ ...note, body: "  " }).body).toBe("请输入笔记内容");
+  });
+
+  it("validates card number, current expiry, and CVV", () => {
+    const card = entryOfKind("card");
+    const now = new Date("2026-10-31T00:00:00Z");
+    expect(validateEntry({ ...card, cardNumber: "1234 5678 9012" }).cardNumber).toBe("卡号格式不正确");
+    expect(validateEntry({ ...card, expiry: "09/26" }, now).expiry).toBe("有效期不能早于当前月份");
+    expect(validateEntry({ ...card, cvv: "12" }).cvv).toBe("安全码应为 3-4 位数字");
+    expect(validateEntry({ ...card, cardNumber: "0000 0000 0000 0000", expiry: "10/26", cvv: "000" }, now)).toEqual({});
+  });
+
+  it("requires an identity document number and real calendar dates", () => {
+    const identity = entryOfKind("identity");
+    expect(validateEntry({ ...identity, documentNumber: " " }).documentNumber).toBe("请输入证件号码");
+    expect(validateEntry({ ...identity, issuedAt: "2026-02-30" }).issuedAt).toBe("日期格式应为 YYYY-MM-DD");
+  });
+
   it("accepts all valid demo entries", () => {
     for (const entry of createDemoEntries()) expect(validateEntry(entry)).toEqual({});
   });
