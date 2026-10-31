@@ -93,3 +93,61 @@ fn new_master_password_requires_length_and_three_character_classes() {
         manager.unlock(password.into()).unwrap();
     }
 }
+
+#[test]
+fn creates_directly_in_a_custom_fixed_directory() {
+    let fixture = tempfile::TempDir::new().unwrap();
+    let destination = fixture.path().join("custom-vault");
+    let mut manager = VaultManager::new_for_test().unwrap();
+    manager
+        .create_at("Master-pass1!".into(), Some(destination.clone()))
+        .unwrap();
+    assert!(destination.join("vault.db").exists());
+    assert!(destination.join("vault.meta").exists());
+    manager.unlock("Master-pass1!".into()).unwrap();
+    assert_eq!(
+        manager.current_location().unwrap().path,
+        destination
+            .canonicalize()
+            .unwrap()
+            .to_string_lossy()
+            .into_owned()
+    );
+}
+
+#[test]
+fn rejected_custom_destination_preserves_the_original_workspace() {
+    let fixture = tempfile::TempDir::new().unwrap();
+    let destination = fixture.path().join("occupied");
+    std::fs::create_dir_all(&destination).unwrap();
+    std::fs::write(destination.join("vault.db"), b"do-not-overwrite").unwrap();
+    let mut manager = VaultManager::new_for_test().unwrap();
+    let original = manager.workspace_root();
+    assert!(manager
+        .create_at("Master-pass1!".into(), Some(destination.clone()))
+        .is_err());
+    assert_eq!(manager.workspace_root(), original);
+    assert_eq!(
+        std::fs::read(destination.join("vault.db")).unwrap(),
+        b"do-not-overwrite"
+    );
+}
+
+#[test]
+fn failed_custom_creation_restores_the_original_workspace() {
+    let fixture = tempfile::TempDir::new().unwrap();
+    let destination = fixture.path().join("custom-vault");
+    let mut manager = VaultManager::new_for_test().unwrap();
+    let original = manager.workspace_root();
+    manager.set_config_file_for_test(fixture.path());
+    assert!(manager
+        .create_at("Master-pass1!".into(), Some(destination.clone()))
+        .is_err());
+    assert_eq!(manager.workspace_root(), original);
+    assert!(!destination.join("vault.db").exists());
+    assert!(!destination.join("vault.meta").exists());
+
+    manager.set_config_file_for_test(&original.join("config.json"));
+    manager.create("Master-pass1!".into()).unwrap();
+    assert_eq!(manager.workspace_root(), original);
+}

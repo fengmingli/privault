@@ -30,6 +30,14 @@ pub fn create(
     manager.create(master_password)
 }
 
+pub fn create_at(
+    manager: &mut VaultManager,
+    master_password: String,
+    destination: Option<PathBuf>,
+) -> VaultResult<RecoveryKeyResult> {
+    manager.create_at(master_password, destination)
+}
+
 pub fn unlock(manager: &mut VaultManager, password: String) -> VaultResult<VaultStatus> {
     manager.unlock(password)
 }
@@ -102,8 +110,11 @@ pub fn cancel_migration(manager: &mut VaultManager, id: String) -> VaultResult<(
 pub fn vault_create(
     state: State<'_, Mutex<VaultManager>>,
     master_password: String,
+    destination: Option<String>,
 ) -> VaultResult<RecoveryKeyResult> {
-    with_manager(&state, |manager| create(manager, master_password))
+    with_manager(&state, |manager| {
+        create_at(manager, master_password, destination.map(PathBuf::from))
+    })
 }
 
 #[tauri::command(rename_all = "camelCase")]

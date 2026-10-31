@@ -13,6 +13,8 @@ use crate::migration::{MigrationFs, MigrationOperation, StdMigrationFs};
 use crate::model::{
     AppConfig, EntryKind, EntrySummary, RecoveryKeyResult, VaultEntry, VaultStatus, VaultStatusKind,
 };
+use crate::path_policy::validate_destination;
+use crate::platform::SystemVolumeInspector;
 use crate::storage::{
     self, delete_entry, get_entry, list_entries, restore_entry, search_entries, upsert_entry,
     verify_integrity,
@@ -168,6 +170,34 @@ impl VaultManager {
     }
 
     pub fn create(&mut self, master_password: String) -> VaultResult<RecoveryKeyResult> {
+        self.create_at(master_password, None)
+    }
+
+    pub fn create_at(
+        &mut self,
+        master_password: String,
+        destination: Option<PathBuf>,
+    ) -> VaultResult<RecoveryKeyResult> {
+        Self::validate_password(&master_password)?;
+        let original_workspace = self.workspace.clone();
+        let original_config = self.config.clone();
+        if let Some(path) = destination {
+            let validated = validate_destination(&path, &SystemVolumeInspector, 1_048_576, None)?;
+            self.workspace = Workspace::new(validated.path.clone());
+            self.config.storage_path = validated.path.to_string_lossy().into_owned();
+        }
+        let result = self.create_in_current_workspace(master_password);
+        if result.is_err() {
+            self.workspace = original_workspace;
+            self.config = original_config;
+        }
+        result
+    }
+
+    fn create_in_current_workspace(
+        &mut self,
+        master_password: String,
+    ) -> VaultResult<RecoveryKeyResult> {
         if !matches!(self.session, SessionState::Empty)
             || self.workspace.db_path().exists()
             || self.workspace.meta_path().exists()
