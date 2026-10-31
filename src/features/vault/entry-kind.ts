@@ -1,4 +1,4 @@
-import { CreditCard, Fingerprint, Folder, KeyRound, NotebookText, type LucideIcon } from "lucide-react";
+import { CreditCard, Fingerprint, Folder, KeyRound, NotebookText, Star, type LucideIcon } from "lucide-react";
 import type { Category, EntryKind } from "@/types/vault";
 
 export const ENTRY_KIND_META: Record<EntryKind, { label: string; icon: LucideIcon }> = {
@@ -10,5 +10,6 @@ export const ENTRY_KIND_META: Record<EntryKind, { label: string; icon: LucideIco
 
 export const CATEGORIES: { id: Category; label: string; icon: LucideIcon }[] = [
   { id: "all", label: "全部项目", icon: Folder },
+  { id: "favorites", label: "收藏", icon: Star },
   ...Object.entries(ENTRY_KIND_META).map(([id, meta]) => ({ id: id as EntryKind, label: meta.label, icon: meta.icon })),
 ];

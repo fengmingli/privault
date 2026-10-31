@@ -27,7 +27,7 @@ export function VaultSidebar({ entries, category, onCategory, onLock, onGenerato
       </div>
       <nav aria-label="保险库分类" className="flex-1 space-y-1 overflow-y-auto p-2 min-[1100px]:p-3">
         {CATEGORIES.map(({ id, label, icon: Icon }) => {
-          const count = id === "all" ? entries.length : entries.filter((entry) => entry.kind === id).length;
+          const count = id === "all" ? entries.length : id === "favorites" ? entries.filter((entry) => entry.favorite).length : entries.filter((entry) => entry.kind === id).length;
           return (
             <button key={id} type="button" aria-label={`${label} ${count}`} aria-pressed={category === id} title={label} onClick={() => onCategory(id)} className={cn("flex h-10 w-full items-center justify-center gap-3 rounded-lg px-2 text-sm transition-colors min-[1100px]:justify-between min-[1100px]:px-3", category === id ? "bg-accent font-medium text-accent-foreground" : "text-foreground-muted hover:bg-muted hover:text-foreground")}>
               <span className="flex items-center gap-3">

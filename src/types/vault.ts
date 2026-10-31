@@ -1,5 +1,5 @@
 export type EntryKind = "login" | "note" | "card" | "identity";
-export type Category = "all" | EntryKind;
+export type Category = "all" | "favorites" | EntryKind;
 export type CustomFieldKind = "text" | "password" | "date";
 
 export interface CustomField {

@@ -29,6 +29,13 @@ describe("entry utilities", () => {
     expect(filtered[0].title).toBe("示例 GitHub");
   });
 
+  it("filters only favorite entries and still applies search", () => {
+    const state = createInitialVaultState();
+    const favorites = filterAndSortEntries({ ...state, category: "favorites" });
+    expect(favorites.every((entry) => entry.favorite)).toBe(true);
+    expect(filterAndSortEntries({ ...state, category: "favorites", query: "github" })).toHaveLength(1);
+  });
+
   it("matches secure-note body text", () => {
     const state = createInitialVaultState();
     const filtered = filterAndSortEntries({ ...state, query: "门禁演示编号" });

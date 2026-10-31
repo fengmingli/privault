@@ -118,6 +118,20 @@ describe("VaultWorkspace", () => {
     expect(screen.getByRole("button", { name: /^收藏$/ })).toBeInTheDocument();
   });
 
+  it("shows an independent favorites view and removes cancelled entries", async () => {
+    const { user } = setup();
+    const list = screen.getByRole("region", { name: "条目列表" });
+    await screen.findByRole("heading", { name: "示例 GitHub" });
+    await user.click(screen.getByRole("button", { name: "收藏 1" }));
+    expect(within(list).getByText("示例 GitHub")).toBeInTheDocument();
+    expect(within(list).queryByText("演示银行卡")).not.toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "取消收藏" }));
+    expect(await screen.findByText("还没有收藏项目")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "收藏 0" })).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: /^全部项目/ }));
+    expect(within(list).getByText("示例 GitHub")).toBeInTheDocument();
+  });
+
   it("keeps or discards a dirty editor after confirmation", async () => {
     const { user } = setup();
     await user.click(await screen.findByRole("button", { name: "编辑" }));

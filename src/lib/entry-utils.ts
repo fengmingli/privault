@@ -30,7 +30,8 @@ export function toEntrySummary(entry: VaultEntry): import("@/types/vault").Entry
 export function filterAndSortEntries(state: VaultState): import("@/types/vault").EntrySummary[] {
   const query = state.query.trim().toLowerCase();
   return state.entries
-    .filter((entry) => state.category === "all" || entry.kind === state.category)
+    .filter((entry) => state.category !== "favorites" || entry.favorite)
+    .filter((entry) => state.category === "all" || state.category === "favorites" || entry.kind === state.category)
     .filter((entry) => !query || `${entry.title}\n${entry.summary}\n${entry.searchText}`.toLowerCase().includes(query))
     .sort(compareEntries);
 }
