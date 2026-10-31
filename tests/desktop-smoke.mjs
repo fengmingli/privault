@@ -166,7 +166,6 @@ async function startSession() {
     },
   });
   await browser.updateSettings({ useDomIdAsAccessibilityId: true });
-  await browser.execute("macos: adjustWindow", { x: 40, y: 40, width: 1280, height: 1050 });
 }
 
 async function stopSession() {

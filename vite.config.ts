@@ -10,6 +10,7 @@ export default defineConfig({
   preview: { host: "127.0.0.1", port: 4173, strictPort: true },
   test: {
     environment: "jsdom",
+    include: ["src/**/*.{test,spec}.{ts,tsx}"],
     setupFiles: "./src/test/setup.ts",
     css: true,
     exclude: ["tests/**", "node_modules/**", "dist/**", "src-tauri/**"],

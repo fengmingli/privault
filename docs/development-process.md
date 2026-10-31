@@ -1,8 +1,8 @@
 # Privault 开发过程记录
 
 最后更新：2026-10-31（UTC）
-工作分支：`feature/frontend-ui`  
-工作目录：`.worktrees/frontend-ui`
+工作分支：`main`
+工作目录：`/Users/lifengming/Workspace/personal/privault`
 
 本文记录整个开发过程中安装或使用的工具、项目依赖、主要代码修改、验证结果和未完成的平台验收。后续安装新工具、改变环境或完成重要修改时，必须同步更新本文；不能只记录在被 Git 忽略的临时进度文件中。
 
@@ -226,6 +226,15 @@ Task 8 新增生产依赖 `@tauri-apps/api`，用于前端网关调用受限 Rus
 - 测试 `.app` 使用独立 `com.privault.prototype.debug` 并在启动前 ad-hoc 签名，避免与已安装 release 冲突；目录自动补全面板必须关闭后再点击 Open，含大写/特殊字符的测试密码使用 Mac2 Shift 键映射。
 - 正常非调试模式桌面闭环再次通过。release 已重新构建、ad-hoc 签名并更新到 `~/Applications/Privault.app`，安装副本严格校验通过后已启动。
 
+### 3.9 2026-10-31：合并 main 与验证环境收尾
+
+- `feature/frontend-ui` 已 fast-forward 合并到 `main`，合并结果为 `6c1b1e9`；没有远程上游，未执行 pull 或 push。
+- `vite.config.ts` 的 Vitest include 限定为 `src/**/*.{test,spec}.{ts,tsx}`，避免主目录中的 worktree 被重复扫描并引入多个 React 实例。
+- `glob` 与 `minimatch` 通过 `overrides` 固定为 14.0.2 / 11.0.1，并清理 lockfile 中重复的旧嵌套条目；`npm ci`、生产依赖审计和完整审计均为 **0 vulnerabilities**。
+- 桌面验收移除唯一的 `adjustWindow` 调用，避免不同仓库路径下的新 WebDriverAgentRunner 需要额外窗口几何权限；正常模式真实桌面闭环再次通过。
+- 合并后重新验证 94 个前端测试、7 个 Chrome E2E、45 个 Rust 测试、lint、构建、Clippy 和真实桌面闭环。
+- 已移除 `.worktrees/frontend-ui`、执行 `git worktree prune` 并删除已合并的 `feature/frontend-ui`；后续开发在 `main` 继续。
+
 ## 4. 验证记录
 
 最近一次完整验证（2026-10-31，含真实桌面）：
@@ -244,6 +253,7 @@ Task 8 新增生产依赖 `@tauri-apps/api`，用于前端网关调用受限 Rus
 | release `.app` 构建 | 通过，16.40 MiB；ad-hoc 本机签名严格校验通过 |
 | 本机安装 | 已安装到 `~/Applications/Privault.app` 并启动 |
 | 网络 API 扫描 | `fetch`、Axios、XMLHttpRequest、WebSocket 无匹配 |
+| npm 依赖审计 | 生产依赖及完整依赖均为 **0 vulnerabilities** |
 | Rust 日志扫描 | 无 `println!` / `eprintln!` / `dbg!` / 日志宏；`log::` 仅命中 `rfd::FileDialog` 的名称片段 |
 | 前端文件 API 扫描 | `fs::`、`read_to_string`、`write(` 无匹配 |
 | Tauri 权限 | 仍只有 `core:default`，无 fs、HTTP、shell、clipboard、updater 或 process 插件 |
