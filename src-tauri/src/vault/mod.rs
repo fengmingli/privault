@@ -146,14 +146,25 @@ impl VaultManager {
     }
 
     fn validate_password(password: &str) -> VaultResult<()> {
-        if password.chars().count() < 12 {
-            Err(VaultError::new(
-                ErrorCode::InvalidInput,
-                "主密码至少需要 12 位",
-            ))
-        } else {
-            Ok(())
+        if password.chars().count() < 8 {
+            return Err(VaultError::new(ErrorCode::InvalidInput, "主密码至少 8 位"));
         }
+        let mut classes = 0;
+        classes += usize::from(password.chars().any(|c| c.is_ascii_uppercase()));
+        classes += usize::from(password.chars().any(|c| c.is_ascii_lowercase()));
+        classes += usize::from(password.chars().any(|c| c.is_ascii_digit()));
+        classes += usize::from(
+            password
+                .chars()
+                .any(|c| !c.is_ascii_alphanumeric() && !c.is_whitespace()),
+        );
+        if classes < 3 {
+            return Err(VaultError::new(
+                ErrorCode::InvalidInput,
+                "主密码需包含大写、小写、数字、特殊字符中的至少 3 类",
+            ));
+        }
+        Ok(())
     }
 
     pub fn create(&mut self, master_password: String) -> VaultResult<RecoveryKeyResult> {

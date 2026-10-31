@@ -23,8 +23,8 @@ impl Fixture {
         let destination = dir.path().join("destination");
         std::fs::create_dir(&source).unwrap();
         let mut manager = VaultManager::new_at_for_test(&source).unwrap();
-        manager.create("master-password".into()).unwrap();
-        manager.unlock("master-password".into()).unwrap();
+        manager.create("Master-pass1!".into()).unwrap();
+        manager.unlock("Master-pass1!".into()).unwrap();
         let mut entry = VaultEntry::new_empty_for_test(EntryKind::Note);
         entry.common_mut().title = "迁移验证条目".into();
         manager.upsert_entry(entry).unwrap();
@@ -50,7 +50,7 @@ fn successful_migration_preserves_data_and_backups() {
     let id = fixture.prepare();
     fixture
         .manager
-        .confirm_migration(id, "master-password".into())
+        .confirm_migration(id, "Master-pass1!".into())
         .unwrap();
     assert_eq!(
         fixture.manager.current_location().unwrap().path,
@@ -61,11 +61,11 @@ fn successful_migration_preserves_data_and_backups() {
     assert!(fixture.source.join("vault.db").exists());
     assert!(fixture.source.join("backups").exists());
     assert!(fixture.destination.join("vault.db").exists());
-    fixture.manager.unlock("master-password".into()).unwrap();
+    fixture.manager.unlock("Master-pass1!".into()).unwrap();
     assert_eq!(fixture.manager.list_entries().unwrap().len(), 1);
     drop(fixture.manager);
     let mut reopened = VaultManager::new_at_for_test(&fixture.destination).unwrap();
-    reopened.unlock("master-password".into()).unwrap();
+    reopened.unlock("Master-pass1!".into()).unwrap();
     assert_eq!(reopened.list_entries().unwrap().len(), 1);
 }
 
@@ -77,7 +77,7 @@ fn abandoned_prepare_keeps_source_unlockable() {
     drop(fixture.manager);
     assert!(!fixture.destination.join("vault.db").exists());
     let mut reopened = VaultManager::new_at_for_test(&source).unwrap();
-    reopened.unlock("master-password".into()).unwrap();
+    reopened.unlock("Master-pass1!".into()).unwrap();
     assert_eq!(reopened.list_entries().unwrap().len(), 1);
 }
 
@@ -96,7 +96,7 @@ fn failed_target_verification_keeps_original_location() {
     assert!(fixture.source.join("vault.db").exists());
     assert!(fixture.source.join("backups").exists());
     assert!(!fixture.destination.join("vault.db").exists());
-    fixture.manager.unlock("master-password".into()).unwrap();
+    fixture.manager.unlock("Master-pass1!".into()).unwrap();
     assert_eq!(fixture.manager.list_entries().unwrap().len(), 1);
 }
 
@@ -110,7 +110,7 @@ fn cancel_removes_only_temporary_target_files() {
         fixture.manager.current_location().unwrap().path,
         fixture.source.to_string_lossy()
     );
-    fixture.manager.unlock("master-password".into()).unwrap();
+    fixture.manager.unlock("Master-pass1!".into()).unwrap();
 }
 
 #[test]
@@ -196,7 +196,7 @@ fn copy_backup_and_integrity_failures_do_not_switch_location() {
         let result = match result {
             Ok(id) => fixture
                 .manager
-                .confirm_migration(id, "master-password".into()),
+                .confirm_migration(id, "Master-pass1!".into()),
             Err(error) => Err(error),
         };
         assert!(result.is_err());
@@ -206,7 +206,7 @@ fn copy_backup_and_integrity_failures_do_not_switch_location() {
         );
         assert!(fixture.source.join("vault.db").exists());
         assert!(!fixture.destination.join("vault.db").exists());
-        fixture.manager.unlock("master-password".into()).unwrap();
+        fixture.manager.unlock("Master-pass1!".into()).unwrap();
     }
 }
 
@@ -219,7 +219,7 @@ fn config_write_failure_keeps_original_vault() {
     fixture.manager.set_config_file_for_test(&config_directory);
     assert!(fixture
         .manager
-        .confirm_migration(id, "master-password".into())
+        .confirm_migration(id, "Master-pass1!".into())
         .is_err());
     assert_eq!(
         fixture.manager.current_location().unwrap().path,
@@ -227,5 +227,5 @@ fn config_write_failure_keeps_original_vault() {
     );
     assert!(fixture.source.join("vault.db").exists());
     assert!(!fixture.destination.join("vault.db").exists());
-    fixture.manager.unlock("master-password".into()).unwrap();
+    fixture.manager.unlock("Master-pass1!".into()).unwrap();
 }

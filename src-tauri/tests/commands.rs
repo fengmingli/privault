@@ -7,7 +7,7 @@ use std::sync::{Arc, Mutex};
 #[test]
 fn locked_commands_fail_without_secret_details() {
     let mut manager = VaultManager::new_for_test().unwrap();
-    commands::create(&mut manager, "master-password".into()).unwrap();
+    commands::create(&mut manager, "Master-pass1!".into()).unwrap();
     let error = commands::list(&manager).unwrap_err();
     assert_eq!(error.code, ErrorCode::Locked);
 
@@ -21,8 +21,8 @@ fn locked_commands_fail_without_secret_details() {
 #[test]
 fn command_writes_serialize_through_manager_mutex() {
     let manager = Arc::new(Mutex::new(VaultManager::new_for_test().unwrap()));
-    commands::create(&mut manager.lock().unwrap(), "master-password".into()).unwrap();
-    commands::unlock(&mut manager.lock().unwrap(), "master-password".into()).unwrap();
+    commands::create(&mut manager.lock().unwrap(), "Master-pass1!".into()).unwrap();
+    commands::unlock(&mut manager.lock().unwrap(), "Master-pass1!".into()).unwrap();
     let mut handles = Vec::new();
     for index in 0..4 {
         let manager = Arc::clone(&manager);
@@ -41,7 +41,7 @@ fn command_writes_serialize_through_manager_mutex() {
 #[test]
 fn migration_conflict_uses_stable_error_code() {
     let mut manager = VaultManager::new_for_test().unwrap();
-    commands::create(&mut manager, "master-password".into()).unwrap();
+    commands::create(&mut manager, "Master-pass1!".into()).unwrap();
     let destination = manager.workspace_root().join("target");
     commands::prepare_migration(&mut manager, destination.clone()).unwrap();
     let error = commands::prepare_migration(&mut manager, destination).unwrap_err();
