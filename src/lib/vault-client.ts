@@ -51,7 +51,7 @@ export interface MigrationResult {
 
 export interface VaultGateway {
   readonly isDemo: boolean;
-  create(masterPassword: string): Promise<RecoveryKeyResult>;
+  create(masterPassword: string, destination?: string | null): Promise<RecoveryKeyResult>;
   unlock(password: string): Promise<VaultStatus>;
   lock(): Promise<void>;
   status(): Promise<VaultStatus>;
@@ -71,7 +71,9 @@ export interface VaultGateway {
 
 export class TauriVaultGateway implements VaultGateway {
   readonly isDemo = false;
-  create(masterPassword: string) { return invokeVault<RecoveryKeyResult>("vault_create", { masterPassword }); }
+  create(masterPassword: string, destination?: string | null) {
+    return invokeVault<RecoveryKeyResult>("vault_create", { masterPassword, destination: destination ?? null });
+  }
   unlock(password: string) { return invokeVault<VaultStatus>("vault_unlock", { password }); }
   lock() { return invokeVault<void>("vault_lock"); }
   status() { return invokeVault<VaultStatus>("vault_status"); }

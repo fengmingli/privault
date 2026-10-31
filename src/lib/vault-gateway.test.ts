@@ -25,6 +25,15 @@ describe("VaultGateway", () => {
     expect(error).toMatchObject({ code: "InvalidCredentials", message: "主密码不正确" });
   });
 
+  it("passes an optional creation destination to the real command", async () => {
+    const gateway = new TauriVaultGateway();
+    await gateway.create("Master-pass1!", "/tmp/custom");
+    expect(invokeMock).toHaveBeenCalledWith("vault_create", {
+      masterPassword: "Master-pass1!",
+      destination: "/tmp/custom",
+    });
+  });
+
   it("keeps browser demo operations away from Tauri", async () => {
     const gateway = new DemoVaultGateway();
     await gateway.unlock("demo");

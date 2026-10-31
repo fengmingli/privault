@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { Download, LockKeyhole, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { VaultGateway } from "@/lib/vault-client";
@@ -20,6 +20,8 @@ export function AccessFlow({ gateway, onUnlocked, initialScreen = "welcome" }: A
   const [importNotice, setImportNotice] = useState(false);
   const [recoveryNotice, setRecoveryNotice] = useState(false);
   const demoMode = gateway.isDemo;
+  const chooseLocation = useCallback(() => gateway.chooseLocation(), [gateway]);
+  const getLocation = useCallback(() => gateway.getLocation(), [gateway]);
 
   return (
     <AccessLayout>
@@ -41,7 +43,7 @@ export function AccessFlow({ gateway, onUnlocked, initialScreen = "welcome" }: A
         </div>
       )}
       {screen === "unlock" && <UnlockScreen onBack={() => setScreen("welcome")} onForgot={() => setScreen("recover")} onUnlock={async (password) => { await gateway.unlock(password); onUnlocked(); }} showRecoveryNotice={recoveryNotice} demoMode={demoMode} />}
-      {screen === "create" && <CreateVaultFlow onBack={() => setScreen("welcome")} onCreate={(password) => gateway.create(password)} onComplete={async (password) => { await gateway.unlock(password); onUnlocked(); }} demoMode={demoMode} />}
+      {screen === "create" && <CreateVaultFlow onBack={() => setScreen("welcome")} onCreate={(password, destination) => gateway.create(password, destination)} onComplete={async (password) => { await gateway.unlock(password); onUnlocked(); }} onChooseLocation={chooseLocation} onGetLocation={getLocation} demoMode={demoMode} />}
       {screen === "recover" && <RecoverAccessScreen onBack={() => setScreen("unlock")} onRecover={(key, password) => gateway.recoverAccess(key, password)} onRecovered={() => { setRecoveryNotice(true); setScreen("unlock"); }} demoMode={demoMode} />}
     </AccessLayout>
   );

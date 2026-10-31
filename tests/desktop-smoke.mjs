@@ -8,7 +8,7 @@ const migrationDir = process.env.PRIVAULT_MIGRATION_DIR;
 assert(appPath && configDir && migrationDir, "缺少隔离桌面验收路径");
 const expectedMigrationPath = realpathSync(migrationDir);
 
-const masterPassword = "desktop-test-master-password";
+const masterPassword = "Desktop-Master1!";
 const entryPassword = "desktop-test-entry-password";
 const markerTitle = "Desktop-persistence-marker";
 let browser;
@@ -172,7 +172,7 @@ async function main() {
     await clickButton("创建保险库");
     await setInput("new-demo-password", masterPassword);
     await setInput("confirm-demo-password", masterPassword);
-    await clickButton("继续");
+    await clickButton("下一步");
     await waitText("保存恢复密钥");
     await clickText("我已离线保存恢复密钥");
     await clickButton("解锁保险库");

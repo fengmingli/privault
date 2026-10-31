@@ -28,7 +28,7 @@ export class DemoVaultGateway implements VaultGateway {
     return filterAndSortEntries({ entries: this.entries.map(toEntrySummary), selectedId: null, category: "all", query: "", lastDeleted: null });
   }
 
-  async create(masterPassword: string): Promise<RecoveryKeyResult> {
+  async create(masterPassword: string, _destination?: string | null): Promise<RecoveryKeyResult> {
     this.masterPassword = masterPassword;
     this.unlocked = true;
     return { recoveryKey: "DEMO-4C7Q-9M2X-6K8P" };
