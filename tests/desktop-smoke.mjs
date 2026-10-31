@@ -5,8 +5,10 @@ import { remote } from "webdriverio";
 const appPath = process.env.PRIVAULT_APP_PATH;
 const configDir = process.env.PRIVAULT_CONFIG_DIR;
 const migrationDir = process.env.PRIVAULT_MIGRATION_DIR;
-assert(appPath && configDir && migrationDir, "缺少隔离桌面验收路径");
+const createDir = process.env.PRIVAULT_CREATE_DIR;
+assert(appPath && configDir && migrationDir && createDir, "缺少隔离桌面验收路径");
 const expectedMigrationPath = realpathSync(migrationDir);
+const bundleId = process.env.PRIVAULT_BUNDLE_ID ?? "com.privault.prototype";
 
 const masterPassword = "Desktop-Master1!";
 const entryPassword = "desktop-test-entry-password";
@@ -70,8 +72,11 @@ async function clickButton(value, last = false) {
     for (const query of [directQuery, prefixQuery, fallbackQuery]) {
       const elements = await browser.$$(query);
       if (elements.length > 0) {
-        element = last ? elements.at(-1) : elements[0];
-        return true;
+        const candidate = last ? elements.at(-1) : elements[0];
+        if (await candidate.isEnabled()) {
+          element = candidate;
+          return true;
+        }
       }
     }
     return false;
@@ -88,6 +93,19 @@ const inputLabels = {
   "entry-username": "用户名",
   "entry-password": "密码",
 };
+
+const shiftedCharacters = {
+  "!": "1", "@": "2", "#": "3", "$": "4", "%": "5", "^": "6", "&": "7", "*": "8", "(": "9", ")": "0",
+  "_": "-", "+": "=", "{": "[", "}": "]", "|": "\\", "<": ",", ">": ".", "?": "/", "~": "`",
+};
+
+function nativeTextKeys(value) {
+  return Array.from(value).map((character) => {
+    if (/[A-Z]/.test(character)) return { key: character.toLowerCase(), modifierFlags: 2 };
+    if (shiftedCharacters[character]) return { key: shiftedCharacters[character], modifierFlags: 2 };
+    return character;
+  });
+}
 
 async function setInput(id, value) {
   const label = xpathLiteral(inputLabels[id]);
@@ -112,6 +130,21 @@ async function setInput(id, value) {
   await element.setValue(value);
 }
 
+async function selectNativeDirectory(path) {
+  await browser.execute("macos: keys", { keys: [{ key: "g", modifierFlags: 18 }] });
+  const pathField = await browser.$("~PathTextField");
+  await pathField.waitForExist({ timeout: 30_000 });
+  await clickElement(pathField);
+  await pathField.setValue(path);
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    await browser.execute("macos: keys", { keys: ["XCUIKeyboardKeyReturn"] });
+    await browser.pause(300);
+    if ((await browser.$$("~PathTextField")).length === 0) break;
+  }
+  if ((await browser.$$("~PathTextField")).length > 0) throw new Error("目录输入面板未关闭");
+  await clickButton("Open");
+}
+
 async function startSession() {
   browser = await remote({
     hostname: "127.0.0.1",
@@ -123,7 +156,7 @@ async function startSession() {
       platformName: "mac",
       "appium:automationName": "mac2",
       "appium:appPath": appPath,
-      "appium:bundleId": "com.privault.prototype",
+      "appium:bundleId": bundleId,
       "appium:environment": { PRIVAULT_CONFIG_DIR: configDir },
       "appium:noReset": false,
       "appium:skipAppKill": false,
@@ -151,7 +184,7 @@ async function unlock() {
 
 async function auditEncryptedFiles() {
   const marker = Buffer.from(markerTitle);
-  for (const root of [configDir, migrationDir]) {
+  for (const root of [createDir, migrationDir]) {
     for (const name of ["vault.db", "vault.meta"]) {
       const path = `${root}/${name}`;
       assert(existsSync(path), "缺少保险库文件");
@@ -161,17 +194,21 @@ async function auditEncryptedFiles() {
   const config = JSON.parse(readFileSync(`${configDir}/config.json`, "utf8"));
   assert.deepEqual(Object.keys(config).sort(), ["storagePath", "version"]);
   assert.equal(config.storagePath, expectedMigrationPath);
-  const backups = readdirSync(`${configDir}/backups`, { withFileTypes: true });
+  const backups = readdirSync(`${createDir}/backups`, { withFileTypes: true });
   assert(backups.some((entry) => entry.isDirectory() && entry.name.startsWith("migration-")), "缺少迁移加密备份");
 }
 
 async function main() {
   try {
     await startSession();
-    stage = "创建真实保险库";
+    stage = "在自定义目录创建真实保险库";
     await clickButton("创建保险库");
     await setInput("new-demo-password", masterPassword);
     await setInput("confirm-demo-password", masterPassword);
+    await clickButton("选择保存文件夹");
+    await selectNativeDirectory(createDir);
+    await browser.execute("macos: activateApp", { bundleId });
+    await browser.pause(500);
     await clickButton("下一步");
     await waitText("保存恢复密钥");
     await clickText("我已离线保存恢复密钥");
@@ -196,17 +233,10 @@ async function main() {
     stage = "通过原生目录选择器迁移保险库";
     await clickButton("设置");
     await clickButton("更改存储目录");
-    await browser.execute("macos: keys", { keys: [{ key: "g", modifierFlags: 18 }] });
-    const pathField = await browser.$("~PathTextField");
-    await pathField.waitForExist({ timeout: 30_000 });
-    await clickElement(pathField);
-    await pathField.setValue(migrationDir);
-    await browser.execute("macos: keys", { keys: ["XCUIKeyboardKeyReturn"] });
+    await selectNativeDirectory(migrationDir);
+    await browser.execute("macos: activateApp", { bundleId });
     await browser.pause(500);
-    await clickButton("Open");
-    await browser.execute("macos: activateApp", { bundleId: "com.privault.prototype" });
-    await browser.pause(500);
-    await browser.execute("macos: keys", { keys: [...Array.from(masterPassword), "XCUIKeyboardKeyReturn"] });
+    await browser.execute("macos: keys", { keys: [...nativeTextKeys(masterPassword), "XCUIKeyboardKeyReturn"] });
     if (process.env.PRIVAULT_DESKTOP_DEBUG === "1") {
       await browser.pause(500);
       await browser.saveScreenshot("test-results/desktop-after-confirm.png");

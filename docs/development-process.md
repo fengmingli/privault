@@ -216,22 +216,32 @@ Task 8 新增生产依赖 `@tauri-apps/api`，用于前端网关调用受限 Rus
 - 应用安装到 `~/Applications/Privault.app`，无需管理员权限，并已通过 `open` 启动且确认进程运行。
 - 安装和启动过程没有创建、读取或修改真实保险库内容；用户首次创建或解锁由本人操作。
 
+### 3.8 2026-10-31：创建目录与密码体验优化
+
+- `27243d6`：新主密码策略统一为至少 8 个 Unicode 码点，并在大写、小写、数字、特殊字符中至少包含 3 类；创建、改密和恢复均由 Rust 独立校验，旧密码解锁不受影响。
+- `3298282`：新增共享密码显隐组件，创建和恢复访问的主密码/确认密码可分别显示或隐藏，第一步按钮改为“下一步”。
+- `6487f52`：`VaultManager::create_at` 支持可选固定磁盘目录，复用路径校验和 config-last 提交；冲突不覆盖，创建失败恢复原工作区与配置。
+- `dc6956c`：创建页支持默认路径展示、原生目录选择、取消和恢复默认，Demo 不触发真实路径操作；`vault_create(masterPassword, destination?)` 前后端类型一致。
+- 桌面验收改为分别使用初始自定义目录、配置目录和迁移目录，验证自定义创建、重启、迁移和两份加密库及备份。
+- 测试 `.app` 使用独立 `com.privault.prototype.debug` 并在启动前 ad-hoc 签名，避免与已安装 release 冲突；目录自动补全面板必须关闭后再点击 Open，含大写/特殊字符的测试密码使用 Mac2 Shift 键映射。
+- 正常非调试模式桌面闭环再次通过。release 已重新构建、ad-hoc 签名并更新到 `~/Applications/Privault.app`，安装副本严格校验通过后已启动。
+
 ## 4. 验证记录
 
 最近一次完整验证（2026-10-31，含真实桌面）：
 
 | 检查 | 结果 |
 | --- | --- |
-| 前端单元/集成测试 | 19 个测试文件，87 个测试通过 |
+| 前端单元/集成测试 | 19 个测试文件，94 个测试通过 |
 | 本机 Chrome E2E | 7 个测试通过，包括 Demo 存储边界 |
 | 前端 lint | 通过，无警告 |
 | TypeScript + Vite 生产构建 | 通过 |
-| Rust 测试 | 41 个测试通过 |
+| Rust 测试 | 45 个测试通过 |
 | `cargo fmt --check` | 通过 |
 | `cargo clippy --all-targets -- -D warnings` | 通过 |
 | `cargo check --release` | 通过，确认 release 配置可编译 |
-| `npm run test:desktop` | **通过**：macOS 真实创建、两次重启、解锁、迁移、条目一致性及明文扫描 |
-| release `.app` 构建 | 通过，16.39 MiB；ad-hoc 本机签名严格校验通过 |
+| `npm run test:desktop` | **通过**：macOS 自定义目录创建、两次重启、解锁、迁移、条目一致性及明文扫描 |
+| release `.app` 构建 | 通过，16.40 MiB；ad-hoc 本机签名严格校验通过 |
 | 本机安装 | 已安装到 `~/Applications/Privault.app` 并启动 |
 | 网络 API 扫描 | `fetch`、Axios、XMLHttpRequest、WebSocket 无匹配 |
 | Rust 日志扫描 | 无 `println!` / `eprintln!` / `dbg!` / 日志宏；`log::` 仅命中 `rfd::FileDialog` 的名称片段 |
