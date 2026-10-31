@@ -30,12 +30,12 @@ describe("App access flows", () => {
     await user.click(screen.getByRole("button", { name: "创建演示保险库" }));
     await user.type(screen.getByLabelText("设置主密码（仅演示）"), "demo-password-1");
     await user.type(screen.getByLabelText("确认主密码"), "demo-password-2");
-    await user.click(screen.getByRole("button", { name: "继续" }));
+    await user.click(screen.getByRole("button", { name: "下一步" }));
     expect(screen.getByText("两次输入的密码不一致")).toBeInTheDocument();
 
     await user.clear(screen.getByLabelText("确认主密码"));
     await user.type(screen.getByLabelText("确认主密码"), "demo-password-1");
-    await user.click(screen.getByRole("button", { name: "继续" }));
+    await user.click(screen.getByRole("button", { name: "下一步" }));
     expect(screen.getByText("DEMO-4C7Q-9M2X-6K8P")).toBeInTheDocument();
     const enter = screen.getByRole("button", { name: "进入演示保险库" });
     expect(enter).toBeDisabled();

@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from "react";
 import { Check, Copy, Printer, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { PasswordInput } from "@/components/ui/password-input";
 import { copyText } from "@/lib/clipboard";
 import { validateMasterPassword } from "@/lib/validation";
 import type { RecoveryKeyResult } from "@/lib/vault-client";
@@ -101,15 +102,15 @@ export function CreateVaultFlow({ onBack, onCreate, onComplete, demoMode }: Crea
       <form onSubmit={continueToRecovery} className="space-y-4" noValidate>
         <div className="space-y-2">
           <label htmlFor="new-demo-password" className="text-sm font-medium">{demoMode ? "设置主密码（仅演示）" : "设置主密码"}</label>
-          <input id="new-demo-password" type="password" value={password} onChange={(event) => { setPassword(event.target.value); setError(""); }} className="control" autoComplete="off" autoFocus disabled={busy} />
-          <p className="text-xs text-foreground-muted">{demoMode ? "至少 12 位，不会保存或用于真实加密。" : "至少 12 位；仅用于本机密钥派生，不会单独保存。"}</p>
+          <PasswordInput id="new-demo-password" value={password} onChange={(event) => { setPassword(event.target.value); setError(""); }} visibilityLabel="主密码" autoFocus disabled={busy} />
+          <p className="text-xs leading-5 text-foreground-muted">{demoMode ? "至少 8 位，包含大写、小写、数字、特殊字符中的至少 3 类；仅用于演示。" : "至少 8 位，包含大写、小写、数字、特殊字符中的至少 3 类；仅用于本机密钥派生，不会单独保存。"}</p>
         </div>
         <div className="space-y-2">
           <label htmlFor="confirm-demo-password" className="text-sm font-medium">确认主密码</label>
-          <input id="confirm-demo-password" type="password" value={confirmation} onChange={(event) => { setConfirmation(event.target.value); setError(""); }} className="control" autoComplete="off" disabled={busy} />
+          <PasswordInput id="confirm-demo-password" value={confirmation} onChange={(event) => { setConfirmation(event.target.value); setError(""); }} visibilityLabel="确认密码" disabled={busy} />
         </div>
         {error && <p role="alert" className="text-sm text-danger">{error}</p>}
-        <Button type="submit" className="w-full" disabled={busy}>{busy ? "正在创建…" : "继续"}</Button>
+        <Button type="submit" className="w-full" disabled={busy}>{busy ? "正在创建…" : "下一步"}</Button>
         <Button type="button" variant="ghost" className="w-full" onClick={onBack}>返回</Button>
       </form>
     </div>

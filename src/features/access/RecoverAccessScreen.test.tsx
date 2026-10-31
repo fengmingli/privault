@@ -20,4 +20,16 @@ describe("RecoverAccessScreen", () => {
     await user.click(screen.getByRole("button", { name: "返回解锁" }));
     expect(onRecovered).toHaveBeenCalledOnce();
   });
+
+  it("toggles the new password and confirmation independently", async () => {
+    const user = userEvent.setup();
+    render(<RecoverAccessScreen onBack={vi.fn()} onRecover={vi.fn()} onRecovered={vi.fn()} demoMode={false} />);
+    const password = screen.getByLabelText("新主密码");
+    const confirmation = screen.getByLabelText("确认新主密码");
+    await user.click(screen.getByRole("button", { name: "显示新主密码" }));
+    expect(password).toHaveAttribute("type", "text");
+    expect(confirmation).toHaveAttribute("type", "password");
+    await user.click(screen.getByRole("button", { name: "显示确认新密码" }));
+    expect(confirmation).toHaveAttribute("type", "text");
+  });
 });

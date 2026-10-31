@@ -2,16 +2,18 @@ import { describe, expect, it } from "vitest";
 import { isValidDemoRecoveryKey, isValidRecoveryKey, validateMasterPassword } from "./validation";
 
 describe("access validation", () => {
-  it("rejects passwords shorter than 12 characters", () => {
-    expect(validateMasterPassword("short", "short")).toBe("请使用至少 12 位的主密码");
+  it("rejects passwords shorter than 8 code points", () => {
+    expect(validateMasterPassword("Ab1!", "Ab1!")).toBe("主密码至少 8 位");
   });
 
   it("rejects mismatched password confirmation", () => {
     expect(validateMasterPassword("demo-password-1", "demo-password-2")).toBe("两次输入的密码不一致");
   });
 
-  it("accepts matching passwords of at least 12 characters", () => {
-    expect(validateMasterPassword("demo-password", "demo-password")).toBeNull();
+  it("requires at least three character classes and accepts compliant passwords", () => {
+    expect(validateMasterPassword("abcdefgh", "abcdefgh")).toBe("主密码需包含大写、小写、数字、特殊字符中的至少 3 类");
+    expect(validateMasterPassword("Abcdef1!", "Abcdef1!")).toBeNull();
+    expect(validateMasterPassword("Abcdefg1", "Abcdefg1")).toBeNull();
   });
 
   it("normalizes and validates only the explicit demo recovery-key format", () => {

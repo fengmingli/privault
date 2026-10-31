@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from "react";
 import { Button } from "@/components/ui/button";
+import { PasswordInput } from "@/components/ui/password-input";
 import { isValidDemoRecoveryKey, isValidRecoveryKey, validateMasterPassword } from "@/lib/validation";
 import type { RecoveryKeyResult } from "@/lib/vault-client";
 
@@ -67,11 +68,12 @@ export function RecoverAccessScreen({ onBack, onRecover, onRecovered, demoMode }
         </div>
         <div className="space-y-2">
           <label htmlFor="recover-new-password" className="text-sm font-medium">{demoMode ? "新主密码（仅演示）" : "新主密码"}</label>
-          <input id="recover-new-password" type="password" value={password} onChange={(event) => setPassword(event.target.value)} className="control" autoComplete="off" disabled={busy} />
+          <PasswordInput id="recover-new-password" value={password} onChange={(event) => setPassword(event.target.value)} visibilityLabel="新主密码" disabled={busy} />
+          <p className="text-xs leading-5 text-foreground-muted">至少 8 位，包含大写、小写、数字、特殊字符中的至少 3 类。</p>
         </div>
         <div className="space-y-2">
           <label htmlFor="recover-confirm-password" className="text-sm font-medium">确认新主密码</label>
-          <input id="recover-confirm-password" type="password" value={confirmation} onChange={(event) => setConfirmation(event.target.value)} className="control" autoComplete="off" disabled={busy} />
+          <PasswordInput id="recover-confirm-password" value={confirmation} onChange={(event) => setConfirmation(event.target.value)} visibilityLabel="确认新密码" disabled={busy} />
           {errors.password && <p role="alert" className="text-sm text-danger">{errors.password}</p>}
         </div>
         <Button type="submit" className="w-full" disabled={busy}>{busy ? "正在验证…" : demoMode ? "验证演示恢复信息" : "重置主密码"}</Button>

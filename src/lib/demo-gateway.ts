@@ -1,6 +1,6 @@
 import { createDemoEntries } from "@/data/demo";
 import { filterAndSortEntries, toEntrySummary } from "@/lib/entry-utils";
-import { isValidDemoRecoveryKey } from "@/lib/validation";
+import { isValidDemoRecoveryKey, getMasterPasswordRuleError } from "@/lib/validation";
 import type { EntrySummary, MigrationResult, RecoveryKeyResult, StorageLocation, VaultGateway, VaultStatus } from "@/lib/vault-client";
 import type { VaultEntry } from "@/types/vault";
 
@@ -85,7 +85,8 @@ export class DemoVaultGateway implements VaultGateway {
 
   async changeMasterPassword(currentPassword: string, newPassword: string): Promise<void> {
     if (currentPassword !== "demo") throw new Error("演示密码不正确");
-    if (newPassword.length < 12) throw new Error("主密码至少需要 12 位");
+    const passwordError = getMasterPasswordRuleError(newPassword);
+    if (passwordError) throw new Error(passwordError);
   }
 
   async recoverAccess(recoveryKey: string, _newMasterPassword: string): Promise<RecoveryKeyResult> {
