@@ -1,6 +1,6 @@
 use privault_ui_lib::crypto::{
-    create_meta_with_params, decode_recovery_key, generate_recovery_key, replace_master_slot,
-    replace_recovery_slot, unwrap_dek, KdfParams, KeySlotKind,
+    create_meta_with_params, decode_recovery_key, encode_recovery_key, generate_recovery_key,
+    replace_master_slot, replace_recovery_slot, unwrap_dek, KdfParams, KeySlotKind,
 };
 use privault_ui_lib::metadata::{read_meta, write_meta_atomic};
 
@@ -27,12 +27,13 @@ fn wrong_credentials_and_tampered_slots_fail() {
 
 #[test]
 fn recovery_encoding_has_a_checksum() {
-    let recovery = generate_recovery_key().unwrap();
+    let recovery = encode_recovery_key([7_u8; 32]);
     let decoded = decode_recovery_key(&recovery).unwrap();
-    assert_eq!(decoded.len(), 32);
+    assert_eq!(decoded, [7_u8; 32]);
     let mut tampered = recovery.into_bytes();
-    let last = tampered.len() - 1;
-    tampered[last] = if tampered[last] == b'0' { b'1' } else { b'0' };
+    // The final Base32 character contains padding bits, so changing it may not alter the payload.
+    // Flip a meaningful character instead, which must invalidate the checksum.
+    tampered[0] = if tampered[0] == b'0' { b'1' } else { b'0' };
     assert!(decode_recovery_key(std::str::from_utf8(&tampered).unwrap()).is_err());
 }
 

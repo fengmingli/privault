@@ -1,12 +1,12 @@
 # Privault 开发过程记录
 
-最后更新：2026-10-30（UTC）
+最后更新：2026-10-31（UTC）
 工作分支：`feature/frontend-ui`  
 工作目录：`.worktrees/frontend-ui`
 
 本文记录整个开发过程中安装或使用的工具、项目依赖、主要代码修改、验证结果和未完成的平台验收。后续安装新工具、改变环境或完成重要修改时，必须同步更新本文；不能只记录在被 Git 忽略的临时进度文件中。
 
-> 当前状态：真实 SQLCipher 单机保险库和设置中的安全路径迁移已经实现，并通过 Rust、前端和浏览器 Demo 测试。真实桌面 UI 闭环尚未完成，界面中的“本地加密存储 · 验证中”提示必须保留。Windows 未实测。
+> 当前状态：真实 SQLCipher 单机保险库和设置中的安全路径迁移已经实现，macOS 真实桌面闭环已通过，真实模式提示已更新为“本地加密存储 · 完全离线”。Windows 未实测。
 
 ## 1. 工具链与环境
 
@@ -29,7 +29,7 @@
 | Appium | 3.9.0 | 2026-10-29 经用户批准后执行项目本地 npm 安装 | 已作为开发依赖安装，`npx appium --version` 验证通过 |
 | Appium Mac2 Driver | 4.5.1 | 与 Appium 一同作为项目开发依赖安装 | `npx appium driver list` 显示 `mac2@4.5.1 [installed (npm)]` |
 | mas（Mac App Store CLI） | 7.0.0 | 通过 `brew install mas` 安装，用于尝试安装官方 Xcode | 工具已安装；用户随后通过 App Store 完成 Xcode 安装 |
-| Xcode | 27.2（27B52） | 用户通过 Apple App Store 安装并完成系统认证 | 已安装；首次许可尚未同意，真实桌面构建暂被阻塞 |
+| Xcode | 27.2（27B52） | 用户通过 Apple App Store 安装并完成系统认证 | 已安装并接受许可，已用于真实桌面验收 |
 
 补充说明：
 
@@ -86,7 +86,7 @@ mas install 497799835
 
 该命令触发 `sudo` 交互式密码要求，非交互终端无法继续。已为用户打开 Apple 官方 Xcode App Store 页面（应用 ID `497799835`），等待用户点击“获取/安装”并完成系统认证。Homebrew 在安装 `mas` 时自动更新了索引，但没有升级其他已安装包；出现的旧包和不受信任 tap 提示未做任何额外处理。
 
-Xcode 安装后仍需：同意 Xcode 许可、配置 `xcode-select`、重新运行 Mac2 doctor，并由用户在系统设置中授予 Xcode Helper 辅助功能权限。当前尚未验证 Appium Mac2 能否稳定定位 Privault 的 Tauri/WKWebView 元素。
+Xcode 安装后由用户接受许可，并授予 WebDriverAgentRunner 辅助功能权限；随后完成 Appium/WKWebView 适配与真实桌面验收，详见 3.6。没有修改系统级 `xcode-select`，验收脚本通过 `DEVELOPER_DIR` 使用完整 Xcode。
 
 ## 2. 项目依赖变化
 
@@ -172,7 +172,7 @@ Task 8 新增生产依赖 `@tauri-apps/api`，用于前端网关调用受限 Rus
 - “恢复默认目录”复用同一迁移流程：前端传 `destination: null`，默认路径只由 Rust 计算。
 - 通用 Dialog 新增忙碌时禁止关闭，避免准备/验证中途留下未处理迁移。
 
-### 3.4 2026-10-29：桌面验收环境准备（进行中）
+### 3.4 2026-10-29：桌面验收环境准备
 
 - 安装项目本地 Appium / Mac2 和 App Store CLI `mas`，具体命令与阻塞见 1.4。
 - `src-tauri/src/config.rs` 新增仅 debug/test 生效的 `PRIVAULT_CONFIG_DIR` 隔离覆盖；release 构建忽略该环境变量。
@@ -190,9 +190,27 @@ Task 8 新增生产依赖 `@tauri-apps/api`，用于前端网关调用受限 Rus
 - 使用该目录执行 `npx appium driver doctor mac2`，结果为 **0 个必需修复项**；ffmpeg 和 Automation Mode 认证仍是可选项，未处理。
 - 首次执行真实桌面脚本时，Rust 链接阶段确认 Apple SDK 许可尚未同意。已打开 Xcode 图形界面，等待用户接受许可和完成首次启动组件安装；尚未进入 Appium 会话。
 
+### 3.6 2026-10-31：macOS 真实桌面闭环通过
+
+用户接受 Xcode 许可并开启 WebDriverAgentRunner 辅助功能后，完成真实 Appium 验收。调试过程中确认并解决了以下工具链问题：
+
+- Mac2 的 `element.click` 在当前 macOS 的 `XCElementSnapshot.displayID → SkyLight` 路径崩溃；改为从可访问元素读取坐标并调用 Mac2 应用坐标点击。
+- Web 按钮名称主要位于 `title`，条目类型使用标题前缀，标题存在父/子重复静态节点；选择器分别处理，不再依赖严格单元素查询。
+- Mac2 特殊键使用 `XCUIKeyboardKeyTab` / `XCUIKeyboardKeyReturn`，不使用 WebDriver Unicode 键码。
+- 保存按钮位于滚动区域时使用键盘焦点导航，浏览器将焦点按钮滚入视口。
+- 原生目录面板通过 `PathTextField` 输入绝对路径；目标空目录先在隔离临时根目录创建，再点击 Open。
+- 系统目录面板关闭后，Mac2 一度丢失整个 WKWebView 可访问性子树。最终不再依赖该子树或坐标点击验证按钮，而是利用迁移密码框的 `autoFocus`，直接输入虚构主密码并用 `XCUIKeyboardKeyReturn` 提交。
+- Rust 规范化 `/var` 为 `/private/var`，脚本使用 `realpathSync` 比较最终配置，避免将真实成功误判为路径不一致。
+
+最终 `PRIVAULT_DESKTOP_DEBUG=1 npm run test:desktop` 通过后，又以正常非调试模式执行 `npm run test:desktop` 并再次通过。实际覆盖：创建 → 录入 → 重启 → 解锁 → 原生路径迁移 → 再重启解锁 → 条目一致 → 配置、备份和明文扫描。
+
+另修复一个 Rust 测试随机边界：恢复密钥最后一个 Base32 字符含两个填充位，原测试修改末位时可能不改变解码 payload。`recovery_encoding_has_a_checksum` 现使用固定测试熵并篡改第一个有效字符，验证校验和必然拒绝有效位篡改；没有放宽实际校验逻辑。
+
+真实模式横幅已从“验证中”改为“本地加密存储 · 完全离线”，应用窗口与 HTML 标题移除“UI 原型”，README 更新为真实加密存储、验证命令、平台证据和剩余排除项。
+
 ## 4. 验证记录
 
-最近一次完整非桌面验证（Appium 环境准备及隔离配置修改后）：
+最近一次完整验证（2026-10-31，含真实桌面）：
 
 | 检查 | 结果 |
 | --- | --- |
@@ -204,33 +222,35 @@ Task 8 新增生产依赖 `@tauri-apps/api`，用于前端网关调用受限 Rus
 | `cargo fmt --check` | 通过 |
 | `cargo clippy --all-targets -- -D warnings` | 通过 |
 | `cargo check --release` | 通过，确认 release 配置可编译 |
-| `npm run test:desktop` | **构建阻塞**：Xcode 27.2 已安装，但 Apple SDK 许可尚未接受；未启动 Appium 会话，不能记为桌面验收通过 |
+| `npm run test:desktop` | **通过**：macOS 真实创建、两次重启、解锁、迁移、条目一致性及明文扫描 |
+| 网络 API 扫描 | `fetch`、Axios、XMLHttpRequest、WebSocket 无匹配 |
+| Rust 日志扫描 | 无 `println!` / `eprintln!` / `dbg!` / 日志宏；`log::` 仅命中 `rfd::FileDialog` 的名称片段 |
+| 前端文件 API 扫描 | `fs::`、`read_to_string`、`write(` 无匹配 |
+| Tauri 权限 | 仍只有 `core:default`，无 fs、HTTP、shell、clipboard、updater 或 process 插件 |
+| 测试清理 | 无残留验收 Appium/Privault 进程或 `privault-desktop-*` 临时目录 |
 
 测试数据边界：
 
 - 浏览器测试只使用虚构内存数据，不创建真实保险库或真实路径。
 - Rust 测试使用隔离临时目录。
-- 尚未运行真实 Tauri 桌面 UI 的创建、重启和迁移闭环。
+- 真实桌面验收使用 debug/test 专用绝对路径覆盖和虚构凭据，成功后清理临时保险库；没有读取或修改用户真实保险库。
 
 ## 5. 当前阻塞与后续事项
 
-### 5.1 macOS 桌面自动化阻塞
+### 5.1 平台证据
 
-原 Task 10 计划假设 `tauri-driver + safaridriver` 可覆盖 macOS，但已安装的 `tauri-driver 2.1.0` 源码证明该假设不成立。随后已安装项目本地 Appium 3.9.0、Mac2 Driver 4.5.1 和完整 Xcode 27.2；Mac2 doctor 已无必需修复项。当前阻塞为 Xcode 首次许可和随后的系统自动化授权，真实桌面自动化验收尚未运行。
+- **macOS**：真实 Appium 桌面闭环已通过，Task 10 的本机验收、审计和文档工作完成。
+- **Windows**：尚未运行 Rust 测试或桌面闭环，不宣称验证通过；后续需在 Windows 使用匹配的 WebDriver 环境单独执行。
+- macOS 自动化复验需要完整 Xcode 和 WebDriverAgentRunner 辅助功能权限；这些系统授权没有通过关闭安全认证绕过。
 
-当前采用 Appium 评估路线，仍需完成：
+### 5.2 本期仍然排除
 
-1. 完成官方 Xcode 安装和许可配置，验证 Appium Mac2 是否能可靠控制 Privault 的 Tauri/WKWebView；辅助功能等系统权限需要用户手动授权。
-2. 如果 Appium 路线不可行，保留自动化验收为未完成，提供隔离环境的人工桌面验收步骤，由用户实际操作并记录结果。
-3. 在 Linux/Windows 环境可使用受支持的 `tauri-driver` 执行自动化流程；Windows 仍需单独实测，不能根据 macOS 或其他平台结果推断通过。
+- `.pvault` 跨设备导入导出、云同步、账号、遥测、远程资源和自动更新。
+- 浏览器或系统自动填充、附件、生物识别。
+- 原生剪贴板定时清理、系统休眠锁定。
+- 安装包发布、平台签名和 Windows 实测。
 
-### 5.2 Task 10 尚未完成
-
-- 隔离桌面配置目录与真实应用重启验收。
-- 创建 → 录入 → 重启 → 解锁 → 迁移 → 再解锁 → 数据一致的桌面证据。
-- 最终网络、日志、前端文件访问和明文物件审计。
-- 更新已经过时的 `README.md`（当前仍描述为纯 UI 原型并声称未安装 Rust）。
-- 根据真实验收结果决定是否移除“验证中”提示；目前不得移除。
+真实桌面验收脚本、环境限制、排障方法和 macOS 证据均已写入 README 与本文，后续变更必须继续保留可复现的验证证据。
 
 ## 6. 维护要求
 
@@ -242,4 +262,4 @@ Task 8 新增生产依赖 `@tauri-apps/api`，用于前端网关调用受限 Rus
 - 完成重要 UI/安全行为修改。
 - 执行完整测试、真实桌面验收或发现新的平台限制。
 
-不得把“安装成功”写成“功能验证通过”，不得在 Windows 未实测时宣称 Windows 通过，也不得在真实桌面闭环完成前删除验证提示。
+不得把“安装成功”写成“功能验证通过”，不得在 Windows 未实测时宣称 Windows 通过，也不得将未经实际运行的桌面验收脚本记为验收证据。

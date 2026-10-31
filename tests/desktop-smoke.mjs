@@ -1,15 +1,16 @@
 import assert from "node:assert/strict";
-import { existsSync, mkdirSync, readFileSync, readdirSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, readdirSync, realpathSync, writeFileSync } from "node:fs";
 import { remote } from "webdriverio";
 
 const appPath = process.env.PRIVAULT_APP_PATH;
 const configDir = process.env.PRIVAULT_CONFIG_DIR;
 const migrationDir = process.env.PRIVAULT_MIGRATION_DIR;
 assert(appPath && configDir && migrationDir, "缺少隔离桌面验收路径");
+const expectedMigrationPath = realpathSync(migrationDir);
 
 const masterPassword = "desktop-test-master-password";
 const entryPassword = "desktop-test-entry-password";
-const markerTitle = "Desktop persistence marker";
+const markerTitle = "Desktop-persistence-marker";
 let browser;
 let stage = "启动隔离应用";
 
@@ -21,35 +22,93 @@ function xpathLiteral(value) {
 
 function textXpath(value) {
   const literal = xpathLiteral(value);
-  return `//XCUIElementTypeStaticText[@label=${literal} or @value=${literal} or @name=${literal}]`;
+  return `//XCUIElementTypeStaticText[@label=${literal} or @value=${literal} or @name=${literal} or @title=${literal}]`;
 }
 
 function buttonXpath(value, last = false) {
   const literal = xpathLiteral(value);
-  const query = `//XCUIElementTypeButton[@label=${literal} or @value=${literal} or @name=${literal} or .//*[@label=${literal} or @value=${literal} or @name=${literal}]]`;
+  const query = `//XCUIElementTypeButton[@label=${literal} or @value=${literal} or @name=${literal} or @title=${literal} or .//*[@label=${literal} or @value=${literal} or @name=${literal} or @title=${literal}]]`;
   return last ? `(${query})[last()]` : query;
 }
 
 async function waitText(value) {
-  const element = await browser.$(textXpath(value));
-  await element.waitForExist({ timeout: 30_000 });
+  await browser.waitUntil(async () => {
+    const elements = await browser.$$(textXpath(value));
+    return elements.length > 0;
+  }, { timeout: 30_000 });
+}
+
+async function clickElement(element) {
+  const { x, y } = await element.getLocation();
+  const { width, height } = await element.getSize();
+  await browser.execute("macos: click", {
+    x: Math.round(x + width / 2),
+    y: Math.round(y + height / 2),
+  });
 }
 
 async function clickText(value) {
-  const element = await browser.$(textXpath(value));
-  await element.waitForExist({ timeout: 30_000 });
-  await element.click();
+  let elements = [];
+  await browser.waitUntil(async () => {
+    elements = await browser.$$(textXpath(value));
+    return elements.length > 0;
+  }, { timeout: 30_000 });
+  await clickElement(elements.at(-1));
 }
 
 async function clickButton(value, last = false) {
-  const element = await browser.$(buttonXpath(value, last));
-  await element.waitForExist({ timeout: 30_000 });
-  await element.click();
+  const directQuery = `//XCUIElementTypeButton[@title=${xpathLiteral(value)}]`;
+  const prefixQuery = `//XCUIElementTypeButton[starts-with(@title, ${xpathLiteral(value)})]`;
+  const fallbackQuery = buttonXpath(value);
+  if (process.env.PRIVAULT_DESKTOP_DEBUG === "1") {
+    const allButtons = await browser.$$("//XCUIElementTypeButton");
+    const directButtons = await browser.$$(directQuery);
+    writeFileSync("test-results/desktop-selector-debug.json", JSON.stringify({ allButtons: allButtons.length, directButtons: directButtons.length, directQuery }));
+  }
+  let element;
+  await browser.waitUntil(async () => {
+    for (const query of [directQuery, prefixQuery, fallbackQuery]) {
+      const elements = await browser.$$(query);
+      if (elements.length > 0) {
+        element = last ? elements.at(-1) : elements[0];
+        return true;
+      }
+    }
+    return false;
+  }, { timeout: 30_000 });
+  await clickElement(element);
 }
 
+const inputLabels = {
+  "new-demo-password": "设置主密码",
+  "confirm-demo-password": "确认主密码",
+  "demo-password": "主密码",
+  "migration-master-password": "主密码",
+  "entry-title": "标题",
+  "entry-username": "用户名",
+  "entry-password": "密码",
+};
+
 async function setInput(id, value) {
-  const element = await browser.$(`~${id}`);
-  await element.waitForExist({ timeout: 30_000 });
+  const label = xpathLiteral(inputLabels[id]);
+  const queries = [
+    `~${id}`,
+    `//XCUIElementTypeSecureTextField[@title=${label}]`,
+    `//XCUIElementTypeTextField[@title=${label}]`,
+    `//XCUIElementTypeTextView[@title=${label}]`,
+  ];
+  let element;
+  await browser.waitUntil(async () => {
+    for (const query of queries) {
+      const elements = await browser.$$(query);
+      if (elements.length > 0) {
+        element = elements[0];
+        return true;
+      }
+    }
+    return false;
+  }, { timeout: 30_000 });
+  await clickElement(element);
   await element.setValue(value);
 }
 
@@ -74,6 +133,7 @@ async function startSession() {
     },
   });
   await browser.updateSettings({ useDomIdAsAccessibilityId: true });
+  await browser.execute("macos: adjustWindow", { x: 40, y: 40, width: 1280, height: 1050 });
 }
 
 async function stopSession() {
@@ -100,7 +160,7 @@ async function auditEncryptedFiles() {
   }
   const config = JSON.parse(readFileSync(`${configDir}/config.json`, "utf8"));
   assert.deepEqual(Object.keys(config).sort(), ["storagePath", "version"]);
-  assert.equal(config.storagePath, migrationDir);
+  assert.equal(config.storagePath, expectedMigrationPath);
   const backups = readdirSync(`${configDir}/backups`, { withFileTypes: true });
   assert(backups.some((entry) => entry.isDirectory() && entry.name.startsWith("migration-")), "缺少迁移加密备份");
 }
@@ -124,7 +184,7 @@ async function main() {
     await setInput("entry-title", markerTitle);
     await setInput("entry-username", "desktop@example.invalid");
     await setInput("entry-password", entryPassword);
-    await clickButton("保存项目");
+    await browser.execute("macos: keys", { keys: [...Array(8).fill("XCUIKeyboardKeyTab"), "XCUIKeyboardKeyReturn"] });
     await waitText(markerTitle);
     await stopSession();
 
@@ -136,28 +196,50 @@ async function main() {
     stage = "通过原生目录选择器迁移保险库";
     await clickButton("设置");
     await clickButton("更改存储目录");
-    await browser.keys(["\uE03D", "\uE008", "g"]);
-    await browser.keys(migrationDir);
-    await browser.keys(["\uE007"]);
+    await browser.execute("macos: keys", { keys: [{ key: "g", modifierFlags: 18 }] });
+    const pathField = await browser.$("~PathTextField");
+    await pathField.waitForExist({ timeout: 30_000 });
+    await clickElement(pathField);
+    await pathField.setValue(migrationDir);
+    await browser.execute("macos: keys", { keys: ["XCUIKeyboardKeyReturn"] });
     await browser.pause(500);
-    await browser.keys(["\uE007"]);
-    await setInput("migration-master-password", masterPassword);
-    await clickButton("验证并迁移");
-    await waitText("存储位置已更新，请重新解锁");
-    await clickButton("返回解锁");
+    await clickButton("Open");
+    await browser.execute("macos: activateApp", { bundleId: "com.privault.prototype" });
+    await browser.pause(500);
+    await browser.execute("macos: keys", { keys: [...Array.from(masterPassword), "XCUIKeyboardKeyReturn"] });
+    if (process.env.PRIVAULT_DESKTOP_DEBUG === "1") {
+      await browser.pause(500);
+      await browser.saveScreenshot("test-results/desktop-after-confirm.png");
+    }
+    await browser.waitUntil(async () => {
+      try {
+        const config = JSON.parse(readFileSync(`${configDir}/config.json`, "utf8"));
+        return config.storagePath === expectedMigrationPath;
+      } catch {
+        return false;
+      }
+    }, { timeout: 30_000, interval: 250 });
+    await stopSession();
 
-    stage = "迁移后重新解锁并核对条目";
+    stage = "迁移后重新启动、解锁并核对条目";
+    await startSession();
     await unlock();
     await waitText(markerTitle);
 
     stage = "审计加密文件、配置和备份";
     await auditEncryptedFiles();
     console.log("真实桌面闭环验收通过；条目一致性、配置边界及明文扫描均已验证。");
-  } catch {
+  } catch (reason) {
     if (browser) {
       try {
         mkdirSync("test-results", { recursive: true });
+        if (process.env.PRIVAULT_DESKTOP_DEBUG === "1") {
+          writeFileSync("test-results/desktop-smoke-error.txt", String(reason));
+        }
         await browser.saveScreenshot("test-results/desktop-smoke-error.png");
+        if (process.env.PRIVAULT_DESKTOP_DEBUG === "1") {
+          writeFileSync("test-results/desktop-smoke-source.xml", await browser.getPageSource());
+        }
       } catch {
         // 截图失败不覆盖原始验收阶段。
       }

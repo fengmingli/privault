@@ -29,6 +29,18 @@ cleanup() {
     kill "$APPIUM_PID" >/dev/null 2>&1 || true
     wait "$APPIUM_PID" >/dev/null 2>&1 || true
   fi
+  if [[ "${PRIVAULT_DESKTOP_DEBUG:-}" == "1" && -f "$TEST_ROOT/appium.log" ]]; then
+    cp "$TEST_ROOT/appium.log" test-results/desktop-appium.log
+  fi
+  if [[ "${PRIVAULT_DESKTOP_DEBUG:-}" == "1" && -f "$PRIVAULT_CONFIG_DIR/config.json" ]]; then
+    cp "$PRIVAULT_CONFIG_DIR/config.json" test-results/desktop-config.json
+  fi
+  if [[ -n "${PRIVAULT_APP_PATH:-}" ]]; then
+    APP_BINARY="$PRIVAULT_APP_PATH/Contents/MacOS/privault-ui"
+    while read -r app_pid; do
+      [[ -n "$app_pid" ]] && kill "$app_pid" >/dev/null 2>&1 || true
+    done < <(ps -axo pid=,comm= | awk -v binary="$APP_BINARY" '$2 == binary { print $1 }')
+  fi
   case "$TEST_ROOT" in
     "$TMP_BASE"/privault-desktop-*) rm -rf -- "$TEST_ROOT" ;;
   esac
@@ -42,8 +54,13 @@ npx tauri build --debug --bundles app
 export PRIVAULT_APP_PATH="$ROOT_DIR/src-tauri/target/debug/bundle/macos/Privault.app"
 export PRIVAULT_CONFIG_DIR="$TEST_ROOT/vault"
 export PRIVAULT_MIGRATION_DIR="$TEST_ROOT/migrated"
+mkdir -p "$PRIVAULT_MIGRATION_DIR"
 
-npx appium --address 127.0.0.1 --port 4723 --log-level error >"$TEST_ROOT/appium.log" 2>&1 &
+APPIUM_LOG_LEVEL=error
+if [[ "${PRIVAULT_DESKTOP_DEBUG:-}" == "1" ]]; then
+  APPIUM_LOG_LEVEL=info
+fi
+npx appium --address 127.0.0.1 --port 4723 --log-level "$APPIUM_LOG_LEVEL" >"$TEST_ROOT/appium.log" 2>&1 &
 APPIUM_PID=$!
 ready=0
 for _ in {1..60}; do
