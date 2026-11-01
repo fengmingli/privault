@@ -242,7 +242,7 @@ Task 8 新增生产依赖 `@tauri-apps/api`，用于前端网关调用受限 Rus
 - `374e6c5`：Rust 保存入口执行同类核心校验，非法条目不能写入 SQLCipher；旧测试夹具补齐合法正文和 CVV。
 - 桌面验收增加真实收藏/分类切换，并兼容 macOS 将侧栏分类暴露为 `XCUIElementTypeCheckBox` 的结构。
 - 系统自动化认证保持开启；一次 WDA 授权超时通过重新开启辅助功能和自动化授权解决，没有执行 `automationmodetool enable-automationmode-without-authentication`。
-- 最终验证：100 个前端测试、48 个 Rust 测试、7 个 Chrome E2E、0 漏洞审计及正常模式真实桌面闭环全部通过。release 更新安装在验证后进行。
+- 最终验证：100 个前端测试、48 个 Rust 测试、7 个 Chrome E2E、0 漏洞审计及正常模式真实桌面闭环全部通过。release 已重新构建、ad-hoc 签名并更新到 `~/Applications/Privault.app`，安装副本严格校验通过后已启动。
 
 ## 4. 验证记录
 
@@ -259,7 +259,7 @@ Task 8 新增生产依赖 `@tauri-apps/api`，用于前端网关调用受限 Rus
 | `cargo clippy --all-targets -- -D warnings` | 通过 |
 | `cargo check --release` | 通过，确认 release 配置可编译 |
 | `npm run test:desktop` | **通过**：macOS 自定义目录创建、两次重启、解锁、迁移、独立收藏视图、条目一致性及明文扫描 |
-| release `.app` 构建 | 通过，16.40 MiB；ad-hoc 本机签名严格校验通过 |
+| release `.app` 构建 | 通过，16.47 MiB；ad-hoc 本机签名严格校验通过 |
 | 本机安装 | 已安装到 `~/Applications/Privault.app` 并启动 |
 | 网络 API 扫描 | `fetch`、Axios、XMLHttpRequest、WebSocket 无匹配 |
 | npm 依赖审计 | 生产依赖及完整依赖均为 **0 vulnerabilities** |
