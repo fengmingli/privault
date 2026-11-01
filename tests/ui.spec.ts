@@ -115,16 +115,6 @@ test("dark controls inherit semantic foreground colors", async ({ page }) => {
   await expect.poll(() => listButton.evaluate((element) => getComputedStyle(element).color)).toBe(bodyColor);
 });
 
-test("narrow create flow keeps brand and actions reachable", async ({ page }) => {
-  await page.setViewportSize({ width: 900, height: 700 });
-  await page.goto("/");
-  await page.getByRole("button", { name: "创建演示保险库" }).click();
-  await expect(page.getByText("Privault")).toBeInViewport();
-  const back = page.getByRole("button", { name: "返回" });
-  await back.scrollIntoViewIfNeeded();
-  await expect(back).toBeInViewport();
-});
-
 test("1024px layout has no horizontal overflow", async ({ page }) => {
   await mkdir("test-results", { recursive: true });
   await page.setViewportSize({ width: 1024, height: 700 });

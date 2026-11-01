@@ -6,8 +6,7 @@ import App from "./App";
 describe("App access flows", () => {
   it("shows the product identity and persistent prototype warning", () => {
     render(<App />);
-    expect(screen.getByText("Privault")).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "把重要信息，留在本机。" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Privault" })).toBeInTheDocument();
     expect(screen.getByText("UI 原型，请勿输入真实密码")).toBeInTheDocument();
   });
 

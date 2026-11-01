@@ -12,30 +12,12 @@ function setup(initialScreen: Screen, overrides: Partial<VaultGateway> = {}) {
   return { gateway };
 }
 
-describe("AccessFlow layout", () => {
-  it.each([
-    ["welcome", "split"],
-    ["create", "split"],
-    ["unlock", "focused"],
-    ["recover", "focused"],
-  ] as const)("maps %s to %s layout", (initialScreen, layout) => {
-    setup(initialScreen);
-    expect(screen.getByRole("main")).toHaveAttribute("data-layout", layout);
-  });
-
-  it("removes repeated branding and promotional tags", () => {
-    setup("welcome");
-    expect(screen.queryByText("PRIVAULT")).not.toBeInTheDocument();
-    expect(screen.queryByText("完全离线设计")).not.toBeInTheDocument();
-    expect(screen.queryByText("Mac · Windows")).not.toBeInTheDocument();
-    expect(screen.queryByText("本地数据")).not.toBeInTheDocument();
-    expect(screen.getByText("把重要信息，留在本机。")).toBeInTheDocument();
-  });
-
-  it("keeps focused access free of the marketing panel", () => {
+describe("AccessFlow", () => {
+  it("uses the previous split layout for unlock", () => {
     setup("unlock");
-    expect(screen.getByText("Privault")).toBeInTheDocument();
-    expect(screen.queryByText("把重要信息，留在本机。")).not.toBeInTheDocument();
+    expect(screen.getByText("PRIVAULT")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Privault" })).toBeInTheDocument();
+    expect(screen.getByText("把重要信息，留在本机。")).toBeInTheDocument();
     expect(screen.getByLabelText("演示密码")).toBeInTheDocument();
   });
 
