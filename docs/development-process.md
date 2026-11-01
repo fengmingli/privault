@@ -114,7 +114,8 @@ Task 8 新增生产依赖 `@tauri-apps/api`，用于前端网关调用受限 Rus
 - `zeroize`：密钥材料清理。
 - `serde` / `serde_json`：受限 DTO 与元数据序列化。
 - `tauri` / `tauri-build`：桌面壳与命令层。
-- `rfd`：Rust 原生目录选择器，前端不获得任意文件系统权限。
+- `rfd`：Rust 原生目录与文件选择器，前端不获得任意文件系统权限。
+- `zip 9.2.0`：仅启用 `deflate`，用于 `.pvault` 严格三项归档；不重复加密 SQLCipher 数据库。
 - `uuid`、`chrono`、`dirs`、`getrandom`、`hex`、`libc`、`thiserror` 等辅助依赖。
 - Windows 专用 `windows-sys`；测试专用 `tempfile`。
 
@@ -244,6 +245,16 @@ Task 8 新增生产依赖 `@tauri-apps/api`，用于前端网关调用受限 Rus
 - 系统自动化认证保持开启；一次 WDA 授权超时通过重新开启辅助功能和自动化授权解决，没有执行 `automationmodetool enable-automationmode-without-authentication`。
 - 最终验证：100 个前端测试、48 个 Rust 测试、7 个 Chrome E2E、0 漏洞审计及正常模式真实桌面闭环全部通过。release 已重新构建、ad-hoc 签名并更新到 `~/Applications/Privault.app`，安装副本严格校验通过后已启动。
 
+### 3.11 2026-11-01：`.pvault` 加密导入导出与增量构建
+
+- `beba95a`：新增严格 `.pvault` 导出，仅包含 `vault.db`、`vault.meta`、`manifest.json`，拒绝覆盖已有目标。
+- `506f960`：新增原主密码验证、导入前 `backups/import-*` 备份、失败回滚及恶意归档测试。
+- `f328a2c`：新增前端网关、导入导出对话框和设置入口；Demo 不执行真实文件操作。
+- 当前增量验证通过：106 个前端测试、54 个 Rust 测试、lint、TypeScript/Vite 构建和 `cargo fmt --check`。
+- 桌面验收脚本已加入导出、独立工作区导入、收藏和备份检查；原生 Save/Open 面板自动化仍在修正，**本轮不记为桌面验收通过**。
+- 本轮仅重新构建 release：`src-tauri/target/release/bundle/macos/Privault.app`，16.91 MiB；ad-hoc 严格签名校验通过。用户退出旧应用后，已替换并启动 `~/Applications/Privault.app`，安装副本严格签名校验通过。
+- 后续 UI 调整：真实模式不再显示顶部“本地加密存储 · 完全离线”横幅，Demo 的“UI 原型，请勿输入真实密码”警告保留；相关 4 个启动测试通过，release 已重新构建并完成 ad-hoc 签名校验。用户退出旧应用后，安装副本已更新并启动，严格签名校验通过。
+
 ## 4. 验证记录
 
 最近一次完整验证（2026-11-01，含真实桌面和收藏）：
@@ -278,13 +289,13 @@ Task 8 新增生产依赖 `@tauri-apps/api`，用于前端网关调用受限 Rus
 
 ### 5.1 平台证据
 
-- **macOS**：真实 Appium 桌面闭环已通过，Task 10 的本机验收、审计和文档工作完成。
+- **macOS**：既有真实 Appium 桌面闭环已通过；`.pvault` 核心测试已通过，但其新增桌面导入导出闭环尚未复验完成。
 - **Windows**：尚未运行 Rust 测试或桌面闭环，不宣称验证通过；后续需在 Windows 使用匹配的 WebDriver 环境单独执行。
 - macOS 自动化复验需要完整 Xcode 和 WebDriverAgentRunner 辅助功能权限；这些系统授权没有通过关闭安全认证绕过。
 
 ### 5.2 本期仍然排除
 
-- `.pvault` 跨设备导入导出、云同步、账号、遥测、远程资源和自动更新。
+- 云同步、账号、遥测、远程资源和自动更新。
 - 浏览器或系统自动填充、附件、生物识别。
 - 原生剪贴板定时清理、系统休眠锁定。
 - 安装包发布、平台签名和 Windows 实测。
