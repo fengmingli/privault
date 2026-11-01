@@ -94,6 +94,41 @@ fn import_roundtrip_preserves_entries_favorites_and_credentials() {
 }
 
 #[test]
+fn import_from_empty_state_is_unlockable() {
+    let dir = tempfile::TempDir::new().unwrap();
+    let destination = dir.path().join("export.pvault");
+    let (mut source, _) = manager_with_marker();
+    source.export_pvault(destination.clone()).unwrap();
+    let mut imported = VaultManager::new_for_test().unwrap();
+    imported
+        .import_pvault(destination, "Master-pass1!".into())
+        .unwrap();
+    imported.unlock("Master-pass1!".into()).unwrap();
+    assert_eq!(
+        imported.list_entries().unwrap()[0].title,
+        "PRIVATE-PVAULT-MARKER"
+    );
+}
+
+#[test]
+fn import_from_locked_state_is_unlockable() {
+    let dir = tempfile::TempDir::new().unwrap();
+    let destination = dir.path().join("export.pvault");
+    let (mut source, _) = manager_with_marker();
+    source.export_pvault(destination.clone()).unwrap();
+    let mut imported = VaultManager::new_for_test().unwrap();
+    imported.create("Current-pass1!".into()).unwrap();
+    imported
+        .import_pvault(destination, "Master-pass1!".into())
+        .unwrap();
+    imported.unlock("Master-pass1!".into()).unwrap();
+    assert_eq!(
+        imported.list_entries().unwrap()[0].title,
+        "PRIVATE-PVAULT-MARKER"
+    );
+}
+
+#[test]
 fn wrong_password_and_corrupt_archive_keep_current_vault() {
     let dir = tempfile::TempDir::new().unwrap();
     let destination = dir.path().join("export.pvault");

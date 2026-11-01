@@ -271,7 +271,7 @@ impl VaultManager {
     ) -> VaultResult<crate::model::StorageLocation> {
         if !matches!(
             self.session,
-            SessionState::Unlocked { .. } | SessionState::Empty
+            SessionState::Unlocked { .. } | SessionState::Empty | SessionState::Locked
         ) {
             return Err(VaultError::new(ErrorCode::Locked, "保险库已锁定"));
         }
@@ -334,6 +334,9 @@ impl VaultManager {
                     let _ = self.migration_fs.remove_file(path);
                 }
             }
+        }
+        if result.is_ok() {
+            self.session = SessionState::Locked;
         }
         let _ = std::fs::remove_dir_all(&staging);
         result
