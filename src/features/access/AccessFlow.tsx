@@ -22,9 +22,10 @@ export function AccessFlow({ gateway, onUnlocked, initialScreen = "welcome" }: A
   const demoMode = gateway.isDemo;
   const chooseLocation = useCallback(() => gateway.chooseLocation(), [gateway]);
   const getLocation = useCallback(() => gateway.getLocation(), [gateway]);
+  const layout = screen === "unlock" || screen === "recover" ? "focused" : "split";
 
   return (
-    <AccessLayout>
+    <AccessLayout variant={layout}>
       {screen === "welcome" && (
         <div className="space-y-6">
           <div className="space-y-2">
