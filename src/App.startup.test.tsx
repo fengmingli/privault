@@ -21,7 +21,7 @@ describe("App real-vault startup", () => {
     render(<App />);
     expect(await screen.findByLabelText("主密码")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "创建保险库" })).not.toBeInTheDocument();
-    expect(screen.getByText("本地加密存储 · 完全离线")).toBeInTheDocument();
+    expect(screen.queryByText("本地加密存储 · 完全离线")).not.toBeInTheDocument();
   });
 
   it("offers creation only when the vault is empty", async () => {
