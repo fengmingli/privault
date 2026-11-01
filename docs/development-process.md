@@ -1,6 +1,6 @@
 # Privault 开发过程记录
 
-最后更新：2026-10-31（UTC）
+最后更新：2026-11-01（UTC）
 工作分支：`main`
 工作目录：`/Users/lifengming/Workspace/personal/privault`
 
@@ -235,21 +235,30 @@ Task 8 新增生产依赖 `@tauri-apps/api`，用于前端网关调用受限 Rus
 - 合并后重新验证 94 个前端测试、7 个 Chrome E2E、45 个 Rust 测试、lint、构建、Clippy 和真实桌面闭环。
 - 已移除 `.worktrees/frontend-ui`、执行 `git worktree prune` 并删除已合并的 `feature/frontend-ui`；后续开发在 `main` 继续。
 
+### 3.10 2026-11-01：独立收藏与核心字段校验
+
+- `a011cf8`：`Category` 新增 `favorites`，侧栏提供独立收藏视图、数量和空状态，支持搜索、取消后自动选择下一条，其他分类行为不变。
+- `39c8a2a`：前端要求登录用户名/密码、安全笔记正文、银行卡卡号/有效期/CVV、证件号码/日期合法，并在对应字段下方显示错误；Luhn 和日期测试使用固定时间。
+- `374e6c5`：Rust 保存入口执行同类核心校验，非法条目不能写入 SQLCipher；旧测试夹具补齐合法正文和 CVV。
+- 桌面验收增加真实收藏/分类切换，并兼容 macOS 将侧栏分类暴露为 `XCUIElementTypeCheckBox` 的结构。
+- 系统自动化认证保持开启；一次 WDA 授权超时通过重新开启辅助功能和自动化授权解决，没有执行 `automationmodetool enable-automationmode-without-authentication`。
+- 最终验证：100 个前端测试、48 个 Rust 测试、7 个 Chrome E2E、0 漏洞审计及正常模式真实桌面闭环全部通过。release 更新安装在验证后进行。
+
 ## 4. 验证记录
 
-最近一次完整验证（2026-10-31，含真实桌面）：
+最近一次完整验证（2026-11-01，含真实桌面和收藏）：
 
 | 检查 | 结果 |
 | --- | --- |
-| 前端单元/集成测试 | 19 个测试文件，94 个测试通过 |
+| 前端单元/集成测试 | 19 个测试文件，100 个测试通过 |
 | 本机 Chrome E2E | 7 个测试通过，包括 Demo 存储边界 |
 | 前端 lint | 通过，无警告 |
 | TypeScript + Vite 生产构建 | 通过 |
-| Rust 测试 | 45 个测试通过 |
+| Rust 测试 | 48 个测试通过 |
 | `cargo fmt --check` | 通过 |
 | `cargo clippy --all-targets -- -D warnings` | 通过 |
 | `cargo check --release` | 通过，确认 release 配置可编译 |
-| `npm run test:desktop` | **通过**：macOS 自定义目录创建、两次重启、解锁、迁移、条目一致性及明文扫描 |
+| `npm run test:desktop` | **通过**：macOS 自定义目录创建、两次重启、解锁、迁移、独立收藏视图、条目一致性及明文扫描 |
 | release `.app` 构建 | 通过，16.40 MiB；ad-hoc 本机签名严格校验通过 |
 | 本机安装 | 已安装到 `~/Applications/Privault.app` 并启动 |
 | 网络 API 扫描 | `fetch`、Axios、XMLHttpRequest、WebSocket 无匹配 |

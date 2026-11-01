@@ -60,8 +60,11 @@ async function clickText(value) {
 
 async function clickButton(value, last = false) {
   const directQuery = `//XCUIElementTypeButton[@title=${xpathLiteral(value)}]`;
+  const checkboxDirectQuery = `//XCUIElementTypeCheckBox[@title=${xpathLiteral(value)}]`;
   const prefixQuery = `//XCUIElementTypeButton[starts-with(@title, ${xpathLiteral(value)})]`;
+  const checkboxPrefixQuery = `//XCUIElementTypeCheckBox[starts-with(@title, ${xpathLiteral(value)})]`;
   const fallbackQuery = buttonXpath(value);
+  const checkboxFallbackQuery = `//XCUIElementTypeCheckBox[@label=${xpathLiteral(value)} or @value=${xpathLiteral(value)} or @name=${xpathLiteral(value)} or @title=${xpathLiteral(value)}]`;
   if (process.env.PRIVAULT_DESKTOP_DEBUG === "1") {
     const allButtons = await browser.$$("//XCUIElementTypeButton");
     const directButtons = await browser.$$(directQuery);
@@ -69,7 +72,7 @@ async function clickButton(value, last = false) {
   }
   let element;
   await browser.waitUntil(async () => {
-    for (const query of [directQuery, prefixQuery, fallbackQuery]) {
+    for (const query of [directQuery, checkboxDirectQuery, prefixQuery, checkboxPrefixQuery, fallbackQuery, checkboxFallbackQuery]) {
       const elements = await browser.$$(query);
       if (elements.length > 0) {
         const candidate = last ? elements.at(-1) : elements[0];
@@ -162,7 +165,7 @@ async function startSession() {
       "appium:skipAppKill": false,
       "appium:newCommandTimeout": 120,
       "appium:serverStartupTimeout": 180_000,
-      "appium:showServerLogs": false,
+      "appium:showServerLogs": process.env.PRIVAULT_DESKTOP_DEBUG === "1",
     },
   });
   await browser.updateSettings({ useDomIdAsAccessibilityId: true });
@@ -253,6 +256,11 @@ async function main() {
     stage = "迁移后重新启动、解锁并核对条目";
     await startSession();
     await unlock();
+    await waitText(markerTitle);
+
+    stage = "验证独立收藏功能";
+    await clickButton("收藏");
+    await clickButton("收藏 1");
     await waitText(markerTitle);
 
     stage = "审计加密文件、配置和备份";

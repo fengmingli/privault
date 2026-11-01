@@ -35,6 +35,7 @@ test("create, generate, save, delete, and undo", async ({ page }) => {
   await picker.getByRole("button", { name: /登录信息/ }).click();
   const editor = page.getByRole("dialog", { name: "新建登录信息" });
   await editor.getByLabel("标题").fill("Playwright 演示账号");
+  await editor.getByLabel("用户名").fill("playwright@example.com");
   await editor.getByRole("button", { name: "密码生成器" }).click();
   const generator = page.getByRole("dialog", { name: "密码生成器" });
   const generated = await generator.getByLabel("生成的密码").textContent();
