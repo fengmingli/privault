@@ -251,6 +251,19 @@ impl VaultManager {
         Ok(self.status())
     }
 
+    pub fn export_pvault(&mut self, destination: PathBuf) -> VaultResult<PathBuf> {
+        match &self.session {
+            SessionState::Unlocked { connection, .. } => verify_integrity(connection)?,
+            _ => return Err(VaultError::new(ErrorCode::Locked, "保险库已锁定")),
+        }
+        self.lock()?;
+        crate::pvault::write_pvault(
+            &destination,
+            &self.workspace.db_path(),
+            &self.workspace.meta_path(),
+        )
+    }
+
     pub fn lock(&mut self) -> VaultResult<()> {
         self.session = if matches!(self.session, SessionState::Empty) {
             SessionState::Empty

@@ -54,6 +54,12 @@ impl From<rusqlite::Error> for VaultError {
     }
 }
 
+impl From<zip::result::ZipError> for VaultError {
+    fn from(_: zip::result::ZipError) -> Self {
+        Self::new(ErrorCode::InvalidInput, "保险库文件格式无效")
+    }
+}
+
 impl From<serde_json::Error> for VaultError {
     fn from(_: serde_json::Error) -> Self {
         Self::corrupt()

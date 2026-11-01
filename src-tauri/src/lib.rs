@@ -7,6 +7,7 @@ pub mod migration;
 pub mod model;
 pub mod path_policy;
 pub mod platform;
+pub mod pvault;
 pub mod storage;
 pub mod vault;
 
@@ -29,6 +30,9 @@ pub fn run() {
             commands::vault_restore_entry,
             commands::vault_change_master_password,
             commands::vault_recover_access,
+            commands::storage_choose_export_path,
+            commands::storage_choose_import_path,
+            commands::storage_export_pvault,
             commands::storage_get_location,
             commands::storage_choose_location,
             commands::storage_prepare_migration,

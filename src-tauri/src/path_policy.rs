@@ -45,6 +45,41 @@ fn canonicalize_candidate(path: &Path) -> VaultResult<PathBuf> {
     Ok(canonical)
 }
 
+pub fn validate_archive_destination(
+    path: &Path,
+    inspector: &dyn VolumeInspector,
+    required_bytes: u64,
+) -> VaultResult<PathBuf> {
+    if !path.is_absolute() || path.extension().and_then(|value| value.to_str()) != Some("pvault") {
+        return Err(unsupported("导出文件必须是固定磁盘上的 .pvault 文件"));
+    }
+    let parent = path
+        .parent()
+        .ok_or_else(|| unsupported("导出文件路径无效"))?;
+    let canonical = canonicalize_candidate(parent)?;
+    if canonical.parent().is_none() {
+        return Err(unsupported("不能将文件系统根目录作为导出目录"));
+    }
+    if inspector.kind(&canonical)? != VolumeKind::Fixed {
+        return Err(unsupported("仅支持本机固定磁盘目录"));
+    }
+    if path.exists() {
+        return Err(VaultError::new(ErrorCode::PathConflict, "目标文件已存在"));
+    }
+    if inspector.available_bytes(&canonical)? < required_bytes {
+        return Err(VaultError::new(
+            ErrorCode::InsufficientSpace,
+            "目标目录可用空间不足",
+        ));
+    }
+    fs::create_dir_all(&canonical)?;
+    secure_directory(&canonical)?;
+    Ok(canonical.join(
+        path.file_name()
+            .ok_or_else(|| unsupported("导出文件路径无效"))?,
+    ))
+}
+
 pub fn validate_destination(
     path: &Path,
     inspector: &dyn VolumeInspector,

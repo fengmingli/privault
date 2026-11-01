@@ -189,6 +189,32 @@ pub fn vault_recover_access(
 }
 
 #[tauri::command]
+pub fn storage_choose_export_path() -> Option<String> {
+    rfd::FileDialog::new()
+        .add_filter("Privault", &["pvault"])
+        .save_file()
+        .map(|path| path.to_string_lossy().into_owned())
+}
+
+#[tauri::command]
+pub fn storage_choose_import_path() -> Option<String> {
+    rfd::FileDialog::new()
+        .add_filter("Privault", &["pvault"])
+        .pick_file()
+        .map(|path| path.to_string_lossy().into_owned())
+}
+
+#[tauri::command]
+pub fn storage_export_pvault(
+    state: State<'_, Mutex<VaultManager>>,
+    destination: String,
+) -> VaultResult<PathBuf> {
+    with_manager(&state, |manager| {
+        manager.export_pvault(PathBuf::from(destination))
+    })
+}
+
+#[tauri::command]
 pub fn storage_get_location(state: State<'_, Mutex<VaultManager>>) -> VaultResult<StorageLocation> {
     with_manager(&state, |manager| location(manager))
 }
