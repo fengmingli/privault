@@ -94,6 +94,22 @@ export class DemoVaultGateway implements VaultGateway {
     return { recoveryKey: "DEMO-4C7Q-9M2X-6K8P" };
   }
 
+  async chooseExportPath(): Promise<string | null> {
+    throw new Error("浏览器演示模式不支持真实 .pvault 导入导出");
+  }
+
+  async chooseImportPath(): Promise<string | null> {
+    throw new Error("浏览器演示模式不支持真实 .pvault 导入导出");
+  }
+
+  async exportPvault(_destination: string): Promise<{ path: string }> {
+    throw new Error("浏览器演示模式不支持真实 .pvault 导入导出");
+  }
+
+  async importPvault(_source: string, _masterPassword: string): Promise<StorageLocation> {
+    throw new Error("浏览器演示模式不支持真实 .pvault 导入导出");
+  }
+
   async getLocation(): Promise<StorageLocation> {
     return this.location();
   }

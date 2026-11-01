@@ -210,7 +210,7 @@ describe("VaultWorkspace", () => {
     expect(screen.getByRole("main")).toHaveAttribute("aria-busy", "true");
   });
 
-  it("opens settings and explains unavailable export without writing files", async () => {
+  it("opens settings and explains demo archive behavior without writing files", async () => {
     const user = userEvent.setup();
     const onSettingsChange = vi.fn();
     render(<VaultWorkspace onLock={vi.fn()} settings={DEFAULT_SETTINGS} onSettingsChange={onSettingsChange} />);
@@ -218,7 +218,7 @@ describe("VaultWorkspace", () => {
     await user.click(screen.getByLabelText("深色"));
     expect(onSettingsChange).toHaveBeenCalledWith({ theme: "dark" });
     await user.click(screen.getByRole("button", { name: "导出保险库" }));
-    expect(screen.getByText("导出功能尚未接入安全核心，不会创建或写入任何文件。")).toBeInTheDocument();
+    expect(screen.getByText("浏览器 Demo 不支持真实 .pvault 导入导出，不会选择、读取或写入文件。")).toBeInTheDocument();
   });
 
   it("supports search, new-entry, and lock keyboard shortcuts", async () => {

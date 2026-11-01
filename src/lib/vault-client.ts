@@ -62,6 +62,10 @@ export interface VaultGateway {
   restoreEntry(id: string): Promise<void>;
   changeMasterPassword(currentPassword: string, newPassword: string): Promise<void>;
   recoverAccess(recoveryKey: string, newMasterPassword: string): Promise<RecoveryKeyResult>;
+  chooseExportPath(): Promise<string | null>;
+  chooseImportPath(): Promise<string | null>;
+  exportPvault(destination: string): Promise<{ path: string }>;
+  importPvault(source: string, masterPassword: string): Promise<StorageLocation>;
   getLocation(): Promise<StorageLocation>;
   chooseLocation(): Promise<string | null>;
   prepareMigration(destination: string | null): Promise<MigrationResult>;
@@ -87,6 +91,12 @@ export class TauriVaultGateway implements VaultGateway {
   }
   recoverAccess(recoveryKey: string, newMasterPassword: string) {
     return invokeVault<RecoveryKeyResult>("vault_recover_access", { recoveryKey, newMasterPassword });
+  }
+  chooseExportPath() { return invokeVault<string | null>("storage_choose_export_path"); }
+  chooseImportPath() { return invokeVault<string | null>("storage_choose_import_path"); }
+  exportPvault(destination: string) { return invokeVault<{ path: string }>("storage_export_pvault", { destination }); }
+  importPvault(source: string, masterPassword: string) {
+    return invokeVault<StorageLocation>("storage_import_pvault", { source, masterPassword });
   }
   getLocation() { return invokeVault<StorageLocation>("storage_get_location"); }
   chooseLocation() { return invokeVault<string | null>("storage_choose_location"); }

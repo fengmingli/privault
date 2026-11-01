@@ -34,6 +34,21 @@ describe("VaultGateway", () => {
     });
   });
 
+  it("maps pvault pickers, export and import commands", async () => {
+    const gateway = new TauriVaultGateway();
+    await gateway.chooseExportPath();
+    expect(invokeMock).toHaveBeenCalledWith("storage_choose_export_path", undefined);
+    await gateway.chooseImportPath();
+    expect(invokeMock).toHaveBeenCalledWith("storage_choose_import_path", undefined);
+    await gateway.exportPvault("/fixed/export.pvault");
+    expect(invokeMock).toHaveBeenCalledWith("storage_export_pvault", { destination: "/fixed/export.pvault" });
+    await gateway.importPvault("/fixed/source.pvault", "Master-pass1!");
+    expect(invokeMock).toHaveBeenCalledWith("storage_import_pvault", {
+      source: "/fixed/source.pvault",
+      masterPassword: "Master-pass1!",
+    });
+  });
+
   it("keeps browser demo operations away from Tauri", async () => {
     const gateway = new DemoVaultGateway();
     await gateway.unlock("demo");
