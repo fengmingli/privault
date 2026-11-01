@@ -21,8 +21,8 @@ function AccessCard({ children }: PropsWithChildren) {
 export function AccessLayout({ children, variant = "split" }: AccessLayoutProps) {
   if (variant === "focused") {
     return (
-      <main data-layout={variant} className="flex flex-1 items-center justify-center overflow-y-auto px-6 py-8">
-        <div className="w-full max-w-[420px] space-y-6">
+      <main data-layout={variant} className="flex flex-1 overflow-y-auto px-6 py-8">
+        <div className="m-auto w-full max-w-[420px] space-y-6">
           <AccessBrand />
           <AccessCard>{children}</AccessCard>
         </div>
@@ -31,8 +31,8 @@ export function AccessLayout({ children, variant = "split" }: AccessLayoutProps)
   }
 
   return (
-    <main data-layout={variant} className="flex flex-1 items-center justify-center overflow-y-auto px-6 py-10 lg:px-12">
-      <div className="grid w-full max-w-5xl items-center gap-12 lg:grid-cols-[minmax(0,1fr)_420px] lg:gap-14">
+    <main data-layout={variant} className="flex flex-1 overflow-y-auto px-6 py-10 lg:px-12">
+      <div className="m-auto grid w-full max-w-5xl items-center gap-12 lg:grid-cols-[minmax(0,1fr)_420px] lg:gap-14">
         <section className="space-y-6">
           <AccessBrand />
           <div className="space-y-4">
