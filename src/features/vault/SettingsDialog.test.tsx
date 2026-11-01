@@ -10,8 +10,9 @@ describe("SettingsDialog", () => {
     const user = userEvent.setup();
     const onChange = vi.fn();
     const onCapability = vi.fn();
+    const onChangePassword = vi.fn();
     const onPvault = vi.fn();
-    render(<SettingsDialog open settings={DEFAULT_SETTINGS} onChange={onChange} onClose={vi.fn()} onCapability={onCapability} onPvault={onPvault} gateway={new DemoVaultGateway()} onMigrationActiveChange={vi.fn()} onRequireUnlock={vi.fn()} />);
+    render(<SettingsDialog open settings={DEFAULT_SETTINGS} onChange={onChange} onClose={vi.fn()} onCapability={onCapability} onChangePassword={onChangePassword} onPvault={onPvault} gateway={new DemoVaultGateway()} onMigrationActiveChange={vi.fn()} onRequireUnlock={vi.fn()} />);
 
     await user.click(screen.getByLabelText("深色"));
     expect(onChange).toHaveBeenCalledWith({ theme: "dark" });
@@ -19,6 +20,8 @@ describe("SettingsDialog", () => {
     expect(onChange).toHaveBeenCalledWith({ autoLockMinutes: 15 });
     fireEvent.change(screen.getByLabelText("剪贴板倒计时"), { target: { value: "60" } });
     expect(onChange).toHaveBeenCalledWith({ clipboardSeconds: 60 });
+    await user.click(screen.getByRole("button", { name: "修改主密码" }));
+    expect(onChangePassword).toHaveBeenCalledOnce();
     await user.click(screen.getByRole("button", { name: "导出保险库" }));
     expect(onPvault).toHaveBeenCalledWith("export");
     expect(screen.getAllByText("待接入安全核心").length).toBeGreaterThan(0);

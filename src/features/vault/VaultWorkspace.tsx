@@ -10,6 +10,7 @@ import type { VaultGateway } from "@/lib/vault-client";
 import { createInitialVaultState, vaultReducer } from "@/state/vault-reducer";
 import type { Category, EntryKind, VaultEntry } from "@/types/vault";
 import { CapabilityDialog, type Capability } from "./CapabilityDialog";
+import { ChangePasswordDialog } from "./ChangePasswordDialog";
 import { EntryDetailPane } from "./EntryDetailPane";
 import { EntryEditorDialog } from "./EntryEditorDialog";
 import { EntryListPane } from "./EntryListPane";
@@ -41,6 +42,7 @@ export function VaultWorkspace({ onLock, initialEntries, gateway, settings = DEF
   const [generatorOpen, setGeneratorOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [capability, setCapability] = useState<Capability | null>(null);
+  const [changePasswordOpen, setChangePasswordOpen] = useState(false);
   const [pvaultMode, setPvaultMode] = useState<"import" | "export" | null>(null);
   const [lockConfirm, setLockConfirm] = useState(false);
   const [writeBusy, setWriteBusy] = useState(false);
@@ -121,6 +123,7 @@ export function VaultWorkspace({ onLock, initialEntries, gateway, settings = DEF
       setGeneratorOpen(false);
       setSettingsOpen(false);
       setCapability(null);
+      setChangePasswordOpen(false);
       setPvaultMode(null);
       setMigrationActive(false);
       setLoadedEntry(null);
@@ -208,7 +211,8 @@ export function VaultWorkspace({ onLock, initialEntries, gateway, settings = DEF
       {editor.open && <EntryEditorDialog open entry={editor.entry} kind={editor.kind} onSave={saveEntry} onClose={closeEditor} onDirtyChange={setEditorDirty} busy={writesBlocked} />}
       <ConfirmDialog open={deleteCandidate !== null} title="删除这个项目？" description={deleteCandidate ? `将删除“${deleteCandidate.title}”。${activeGateway.isDemo ? "此原型可通过撤销恢复。" : "删除后可在本次会话中撤销。"}` : ""} confirmLabel="确认删除" cancelLabel="取消" destructive onConfirm={confirmDelete} onCancel={() => setDeleteCandidate(null)} />
       <ConfirmDialog open={lockConfirm} title="放弃未保存修改？" description="锁定将放弃当前表单中的未保存内容，并清除搜索词和已显示密码。" confirmLabel="放弃并锁定" cancelLabel="继续编辑" destructive onConfirm={performLock} onCancel={() => setLockConfirm(false)} />
-      <SettingsDialog open={settingsOpen} settings={settings} onChange={onSettingsChange} onClose={() => setSettingsOpen(false)} onCapability={setCapability} onPvault={setPvaultMode} gateway={activeGateway} onMigrationActiveChange={setMigrationActive} onRequireUnlock={() => void performLock()} />
+      <SettingsDialog open={settingsOpen} settings={settings} onChange={onSettingsChange} onClose={() => setSettingsOpen(false)} onCapability={setCapability} onChangePassword={() => { setSettingsOpen(false); setChangePasswordOpen(true); }} onPvault={setPvaultMode} gateway={activeGateway} onMigrationActiveChange={setMigrationActive} onRequireUnlock={() => void performLock()} />
+      {changePasswordOpen && <ChangePasswordDialog open gateway={activeGateway} onClose={() => setChangePasswordOpen(false)} onRequireUnlock={() => { setChangePasswordOpen(false); void performLock(); }} />}
       {pvaultMode && <PvaultDialog open mode={pvaultMode} gateway={activeGateway} onClose={() => setPvaultMode(null)} onRequireUnlock={() => { setPvaultMode(null); void performLock(); }} onBusyChange={setMigrationActive} />}
       <CapabilityDialog open={capability !== null} capability={capability ?? "native-security"} onClose={() => setCapability(null)} />
       <PasswordGeneratorDialog open={generatorOpen} onClose={() => setGeneratorOpen(false)} />
