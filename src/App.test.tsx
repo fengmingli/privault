@@ -60,7 +60,7 @@ describe("App access flows", () => {
     const user = userEvent.setup();
     render(<App />);
     await user.click(screen.getByRole("button", { name: "导入已有保险库" }));
-    expect(screen.getByText("本期不支持导入或导出保险库文件，不会选择或写入任何文件。")).toBeInTheDocument();
+    expect(screen.getByText("浏览器 Demo 不支持真实 .pvault 导入导出，不会选择、读取或写入文件。")).toBeInTheDocument();
   });
 
   it("validates demo recovery access without claiming a real reset", async () => {

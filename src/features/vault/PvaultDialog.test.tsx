@@ -52,9 +52,9 @@ describe("PvaultDialog", () => {
       importPvault: vi.fn().mockRejectedValue(new Error("主密码不正确")),
     });
     await user.click(screen.getByRole("button", { name: "导入保险库" }));
-    expect(screen.getByText("导入将替换当前保险库")).toBeInTheDocument();
+    expect(screen.getByText("导入到当前保险库位置")).toBeInTheDocument();
     await user.type(screen.getByLabelText("原保险库主密码"), "Wrong-master1!");
-    await user.click(screen.getByRole("button", { name: "确认替换并导入" }));
+    await user.click(screen.getByRole("button", { name: "确认导入" }));
     expect(await screen.findByRole("alert")).toHaveTextContent("主密码不正确");
     expect(onRequireUnlock).not.toHaveBeenCalled();
   });
@@ -66,8 +66,9 @@ describe("PvaultDialog", () => {
     });
     await user.click(screen.getByRole("button", { name: "导入保险库" }));
     await user.type(screen.getByLabelText("原保险库主密码"), "Master-pass1!");
-    await user.click(screen.getByRole("button", { name: "确认替换并导入" }));
-    expect(await screen.findByText("导入完成，原保险库已备份")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "确认导入" }));
+    expect(await screen.findByText("导入完成")).toBeInTheDocument();
+    expect(screen.queryByText("导入完成，原保险库已备份")).not.toBeInTheDocument();
     expect(gateway.importPvault).toHaveBeenCalledWith("/fixed/source.pvault", "Master-pass1!");
     await user.click(screen.getByRole("button", { name: "返回解锁" }));
     expect(onRequireUnlock).toHaveBeenCalledOnce();

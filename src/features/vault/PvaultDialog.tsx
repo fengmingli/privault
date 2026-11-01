@@ -100,7 +100,7 @@ export function PvaultDialog({ open, mode, gateway, onClose, onRequireUnlock, on
     <Dialog open={open} title={mode === "import" ? "导入保险库" : "导出保险库"} onClose={onClose} closeDisabled={busy} className="max-w-lg">
       {phase === "idle" && (
         <div className="space-y-5">
-          <p className="text-sm leading-6 text-foreground-muted">{mode === "import" ? "选择要替换当前保险库的 .pvault 加密文件，验证原主密码后才会备份并替换。" : "将整个加密保险库导出为单个 .pvault 文件，不包含明文条目或凭据。"}</p>
+          <p className="text-sm leading-6 text-foreground-muted">{mode === "import" ? "选择要导入当前位置的 .pvault 加密文件，验证原主密码后才会写入。" : "将整个加密保险库导出为单个 .pvault 文件，不包含明文条目或凭据。"}</p>
           <Button type="button" className="w-full" onClick={() => void (mode === "import" ? chooseImport() : exportArchive())}>
             {mode === "import" ? <Upload className="mr-2 h-4 w-4" aria-hidden="true" /> : <Download className="mr-2 h-4 w-4" aria-hidden="true" />}
             {mode === "import" ? "导入保险库" : "导出保险库"}
@@ -111,21 +111,21 @@ export function PvaultDialog({ open, mode, gateway, onClose, onRequireUnlock, on
       {phase === "confirm" && (
         <form onSubmit={confirmImport} className="space-y-4">
           <div className="rounded-lg border border-warning/40 bg-warning/10 p-3 text-sm leading-6">
-            <p className="font-medium">导入将替换当前保险库</p>
-            <p className="mt-1 text-xs leading-5 text-foreground-muted">验证成功后自动备份当前库。导入后请使用原保险库主密码解锁。</p>
+            <p className="font-medium">导入到当前保险库位置</p>
+            <p className="mt-1 text-xs leading-5 text-foreground-muted">如果当前位置已有保险库，验证成功后会先自动备份再替换。导入后请使用原保险库主密码解锁。</p>
             <code className="mono mt-2 block break-all text-xs">{source}</code>
           </div>
           <div className="space-y-2">
             <label htmlFor="pvault-master-password" className="text-sm font-medium">原保险库主密码</label>
             <PasswordInput id="pvault-master-password" value={password} onChange={(event) => setPassword(event.target.value)} visibilityLabel="原保险库主密码" autoFocus disabled={busy} />
           </div>
-          <Button type="submit" className="w-full" disabled={!password || busy}>确认替换并导入</Button>
+          <Button type="submit" className="w-full" disabled={!password || busy}>确认导入</Button>
         </form>
       )}
       {phase === "error" && <p role="alert" className="text-sm text-danger">{error}</p>}
       {phase === "success" && (
         <div className="space-y-4">
-          <p role="status" className="rounded-lg bg-accent p-3 text-sm text-accent-foreground">{mode === "import" ? "导入完成，原保险库已备份" : "加密保险库已导出"}</p>
+          <p role="status" className="rounded-lg bg-accent p-3 text-sm text-accent-foreground">{mode === "import" ? "导入完成" : "加密保险库已导出"}</p>
           {exportedPath && <code className="mono block break-all text-xs">{exportedPath}</code>}
           <p className="text-xs leading-5 text-foreground-muted">请重新解锁保险库。</p>
           <Button type="button" className="w-full" onClick={onRequireUnlock}>返回解锁</Button>
