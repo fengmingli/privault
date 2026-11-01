@@ -84,9 +84,11 @@ export class DemoVaultGateway implements VaultGateway {
   }
 
   async changeMasterPassword(currentPassword: string, newPassword: string): Promise<void> {
-    if (currentPassword !== "demo") throw new Error("演示密码不正确");
+    if (currentPassword !== this.masterPassword) throw new Error("演示密码不正确");
     const passwordError = getMasterPasswordRuleError(newPassword);
     if (passwordError) throw new Error(passwordError);
+    this.masterPassword = newPassword;
+    this.unlocked = false;
   }
 
   async recoverAccess(recoveryKey: string, _newMasterPassword: string): Promise<RecoveryKeyResult> {

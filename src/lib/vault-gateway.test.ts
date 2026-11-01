@@ -72,4 +72,13 @@ describe("VaultGateway", () => {
     await gateway.lock();
     await expect(gateway.listEntries()).rejects.toThrow();
   });
+
+  it("uses the changed demo master password for subsequent unlocks", async () => {
+    const gateway = new DemoVaultGateway();
+    await gateway.changeMasterPassword("demo", "New-demo1!");
+    await gateway.lock();
+    await expect(gateway.unlock("demo")).rejects.toThrow("演示密码不正确");
+    await gateway.unlock("New-demo1!");
+    expect((await gateway.status()).state).toBe("unlocked");
+  });
 });
