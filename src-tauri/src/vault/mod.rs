@@ -264,6 +264,81 @@ impl VaultManager {
         )
     }
 
+    pub fn import_pvault(
+        &mut self,
+        source: PathBuf,
+        master_password: String,
+    ) -> VaultResult<crate::model::StorageLocation> {
+        if !matches!(
+            self.session,
+            SessionState::Unlocked { .. } | SessionState::Empty
+        ) {
+            return Err(VaultError::new(ErrorCode::Locked, "保险库已锁定"));
+        }
+        self.lock()?;
+        let root = self.workspace_root();
+        let id = uuid::Uuid::new_v4().to_string();
+        let staging = std::env::temp_dir().join(format!("privault-import-{id}"));
+        let backup = root.join("backups").join(format!(
+            "import-{}-{id}",
+            chrono::Utc::now().format("%Y%m%dT%H%M%SZ")
+        ));
+        let temp_db = root.join(format!(".import-{id}.db.tmp"));
+        let temp_meta = root.join(format!(".import-{id}.meta.tmp"));
+        let had_existing_vault = root.join("vault.db").exists() || root.join("vault.meta").exists();
+        let result = (|| {
+            let contents = crate::pvault::read_pvault(&source, &staging)?;
+            let meta = read_meta(&contents.meta_path)?;
+            let dek = unwrap_dek(&meta, &master_password, KeySlotKind::Master)?;
+            let connection = storage::open_database(&contents.db_path, &dek)?;
+            verify_integrity(&connection)?;
+            drop(connection);
+
+            if root.join("vault.db").exists() || root.join("vault.meta").exists() {
+                self.migration_fs.create_dir_all(&backup)?;
+                crate::platform::secure_directory(&backup)?;
+                if root.join("vault.db").exists() {
+                    self.migration_fs
+                        .rename(&root.join("vault.db"), &backup.join("vault.db"))?;
+                }
+                if root.join("vault.meta").exists() {
+                    self.migration_fs
+                        .rename(&root.join("vault.meta"), &backup.join("vault.meta"))?;
+                }
+            }
+            self.migration_fs.copy(&contents.db_path, &temp_db)?;
+            self.migration_fs.copy(&contents.meta_path, &temp_meta)?;
+            self.migration_fs.sync_file(&temp_db)?;
+            self.migration_fs.sync_file(&temp_meta)?;
+            self.migration_fs.rename(&temp_db, &root.join("vault.db"))?;
+            self.migration_fs
+                .rename(&temp_meta, &root.join("vault.meta"))?;
+            self.migration_fs.sync_dir(&root)?;
+            self.current_location()
+        })();
+        if result.is_err() {
+            for path in [&temp_db, &temp_meta] {
+                let _ = self.migration_fs.remove_file(path);
+            }
+            if backup.exists() {
+                for name in ["vault.db", "vault.meta"] {
+                    let backup_file = backup.join(name);
+                    if backup_file.exists() {
+                        let current = root.join(name);
+                        let _ = self.migration_fs.remove_file(&current);
+                        let _ = self.migration_fs.copy(&backup_file, &current);
+                    }
+                }
+            } else if !had_existing_vault {
+                for path in [&root.join("vault.db"), &root.join("vault.meta")] {
+                    let _ = self.migration_fs.remove_file(path);
+                }
+            }
+        }
+        let _ = std::fs::remove_dir_all(&staging);
+        result
+    }
+
     pub fn lock(&mut self) -> VaultResult<()> {
         self.session = if matches!(self.session, SessionState::Empty) {
             SessionState::Empty

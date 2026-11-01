@@ -33,6 +33,7 @@ pub fn run() {
             commands::storage_choose_export_path,
             commands::storage_choose_import_path,
             commands::storage_export_pvault,
+            commands::storage_import_pvault,
             commands::storage_get_location,
             commands::storage_choose_location,
             commands::storage_prepare_migration,

@@ -214,6 +214,17 @@ pub fn storage_export_pvault(
     })
 }
 
+#[tauri::command(rename_all = "camelCase")]
+pub fn storage_import_pvault(
+    state: State<'_, Mutex<VaultManager>>,
+    source: String,
+    master_password: String,
+) -> VaultResult<StorageLocation> {
+    with_manager(&state, |manager| {
+        manager.import_pvault(PathBuf::from(source), master_password)
+    })
+}
+
 #[tauri::command]
 pub fn storage_get_location(state: State<'_, Mutex<VaultManager>>) -> VaultResult<StorageLocation> {
     with_manager(&state, |manager| location(manager))
