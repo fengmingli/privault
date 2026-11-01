@@ -279,6 +279,13 @@ Task 8 新增生产依赖 `@tauri-apps/api`，用于前端网关调用受限 Rus
 - 回退后验证：109 个前端测试、7 个 Chrome E2E、lint 和生产构建通过；未修改 Rust，也未运行 macOS 原生桌面自动化。
 - 16.91 MiB release 已重新构建并通过 ad-hoc 严格签名校验；用户退出旧应用后，安装副本已更新并启动，严格签名校验通过。
 
+### 3.15 2026-11-01：补齐修改主密码流程
+
+- 根因：Rust 和 `VaultGateway.changeMasterPassword` 已有改密能力，但设置页没有入口或调用组件，导致用户无法修改主密码。
+- `ec407ba`：新增当前密码、新密码和确认密码对话框，覆盖校验失败、当前密码错误和成功返回解锁；Demo 改密后使用新演示密码。
+- `53c67a0`：设置页新增“修改主密码”入口，工作区复用 `performLock` 清理敏感视图；成功不自动解锁。
+- 验证：113 个前端测试、7 个 Chrome E2E、lint、生产构建及 Rust `master_password_change_requires_current_password` 通过；未运行 macOS 原生桌面自动化。
+
 ## 4. 验证记录
 
 最近一次完整验证（2026-11-01，含真实桌面和收藏）：
