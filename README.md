@@ -70,6 +70,14 @@ npx tauri dev
 
 ## 本机安装 release 应用
 
+GitHub Release `v0.1.0` 提供 Apple Silicon 的 `Privault_0.1.0_aarch64.dmg` 安装镜像：
+
+- SHA-256：`33fd71840bfd1f306db5466e99f06b774668f36b10aa1df59d8f35deb2095597`
+- 镜像内应用为 ad-hoc 本机签名，不是 Apple Developer 签名或公证版本。
+- 下载后可执行 `shasum -a 256 Privault_0.1.0_aarch64.dmg` 校验。
+
+也可以从源码构建：
+
 ```bash
 npx tauri build --bundles app
 mkdir -p "$HOME/Applications"

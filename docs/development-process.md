@@ -292,6 +292,8 @@ Task 8 新增生产依赖 `@tauri-apps/api`，用于前端网关调用受限 Rus
 - `scripts/verify-local-vault.sh` 和 `tests/desktop-smoke.mjs` 扩展了导出、独立工作区导入、收藏和备份检查；`bash -n`、`node --check` 和 `git diff --check` 通过。该桌面闭环仍需真实 Appium 复验，不能记为通过。
 - `package.json` 和 lockfile 版本统一为 `0.1.0`，与 Rust/Tauri 配置一致。
 - 发布前检查：无 Git 远程或 tag，测试产物、构建产物和真实保险库均未被跟踪；仓库内未发现私钥、token 或真实凭据模式。
+- Tauri 直接生成的 DMG 内部应用未通过严格签名校验，未发布。改为先执行 `npx tauri build --bundles app` 并 ad-hoc 重签，再用 `diskutil image create from --format UDZO` 生成 DMG。
+- 最终 `Privault_0.1.0_aarch64.dmg` 为 5.8 MiB，挂载后内部应用严格签名校验和版本检查通过；SHA-256 为 `33fd71840bfd1f306db5466e99f06b774668f36b10aa1df59d8f35deb2095597`。
 
 ## 4. 验证记录
 
