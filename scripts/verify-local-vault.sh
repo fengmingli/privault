@@ -56,10 +56,12 @@ codesign --force --deep --sign - "$ROOT_DIR/src-tauri/target/debug/bundle/macos/
 codesign --verify --deep --strict --verbose=2 "$ROOT_DIR/src-tauri/target/debug/bundle/macos/Privault.app"
 
 export PRIVAULT_APP_PATH="$ROOT_DIR/src-tauri/target/debug/bundle/macos/Privault.app"
+export PRIVAULT_TEST_ROOT="$TEST_ROOT"
 export PRIVAULT_CONFIG_DIR="$TEST_ROOT/vault"
 export PRIVAULT_MIGRATION_DIR="$TEST_ROOT/migrated"
 export PRIVAULT_CREATE_DIR="$TEST_ROOT/created"
-mkdir -p "$PRIVAULT_MIGRATION_DIR" "$PRIVAULT_CREATE_DIR"
+export PRIVAULT_IMPORT_DIR="$TEST_ROOT/imported"
+mkdir -p "$PRIVAULT_MIGRATION_DIR" "$PRIVAULT_CREATE_DIR" "$PRIVAULT_IMPORT_DIR"
 
 APPIUM_LOG_LEVEL=error
 if [[ "${PRIVAULT_DESKTOP_DEBUG:-}" == "1" ]]; then

@@ -287,6 +287,12 @@ Task 8 新增生产依赖 `@tauri-apps/api`，用于前端网关调用受限 Rus
 - 验证：113 个前端测试、7 个 Chrome E2E、lint、生产构建及 Rust `master_password_change_requires_current_password` 通过；未运行 macOS 原生桌面自动化。
 - 16.91 MiB release 已重新构建并通过 ad-hoc 严格签名校验；用户退出旧应用后，安装副本已更新并启动，严格签名校验通过。
 
+### 3.16 2026-11-02：GitHub 发布准备
+
+- `scripts/verify-local-vault.sh` 和 `tests/desktop-smoke.mjs` 扩展了导出、独立工作区导入、收藏和备份检查；`bash -n`、`node --check` 和 `git diff --check` 通过。该桌面闭环仍需真实 Appium 复验，不能记为通过。
+- `package.json` 和 lockfile 版本统一为 `0.1.0`，与 Rust/Tauri 配置一致。
+- 发布前检查：无 Git 远程或 tag，测试产物、构建产物和真实保险库均未被跟踪；仓库内未发现私钥、token 或真实凭据模式。
+
 ## 4. 验证记录
 
 最近一次完整验证（2026-11-01，含真实桌面和收藏）：

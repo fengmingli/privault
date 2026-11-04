@@ -6,7 +6,8 @@ const appPath = process.env.PRIVAULT_APP_PATH;
 const configDir = process.env.PRIVAULT_CONFIG_DIR;
 const migrationDir = process.env.PRIVAULT_MIGRATION_DIR;
 const createDir = process.env.PRIVAULT_CREATE_DIR;
-assert(appPath && configDir && migrationDir && createDir, "缺少隔离桌面验收路径");
+const importedConfigDir = process.env.PRIVAULT_IMPORT_DIR;
+assert(appPath && configDir && migrationDir && createDir && importedConfigDir, "缺少隔离桌面验收路径");
 const expectedMigrationPath = realpathSync(migrationDir);
 const bundleId = process.env.PRIVAULT_BUNDLE_ID ?? "com.privault.prototype";
 
@@ -133,7 +134,7 @@ async function setInput(id, value) {
   await element.setValue(value);
 }
 
-async function selectNativeDirectory(path) {
+async function selectNativeDirectory(path, action = "Open") {
   await browser.execute("macos: keys", { keys: [{ key: "g", modifierFlags: 18 }] });
   const pathField = await browser.$("~PathTextField");
   await pathField.waitForExist({ timeout: 30_000 });
@@ -145,10 +146,17 @@ async function selectNativeDirectory(path) {
     if ((await browser.$$("~PathTextField")).length === 0) break;
   }
   if ((await browser.$$("~PathTextField")).length > 0) throw new Error("目录输入面板未关闭");
-  await clickButton("Open");
+  if (action !== "Save") await clickButton(action);
 }
 
-async function startSession() {
+async function setNativeFilename(value) {
+  const fields = await browser.$$("//XCUIElementTypeTextField");
+  if (fields.length === 0) throw new Error("找不到导出文件名输入框");
+  await clickElement(fields[0]);
+  await fields[0].setValue(value);
+}
+
+async function startSession(configOverride = configDir) {
   browser = await remote({
     hostname: "127.0.0.1",
     port: 4723,
@@ -160,7 +168,7 @@ async function startSession() {
       "appium:automationName": "mac2",
       "appium:appPath": appPath,
       "appium:bundleId": bundleId,
-      "appium:environment": { PRIVAULT_CONFIG_DIR: configDir },
+      "appium:environment": { PRIVAULT_CONFIG_DIR: configOverride },
       "appium:noReset": false,
       "appium:skipAppKill": false,
       "appium:newCommandTimeout": 120,
@@ -233,6 +241,7 @@ async function main() {
     await waitText(markerTitle);
 
     stage = "通过原生目录选择器迁移保险库";
+    await browser.execute("macos: activateApp", { bundleId });
     await clickButton("设置");
     await clickButton("更改存储目录");
     await selectNativeDirectory(migrationDir);
@@ -262,6 +271,44 @@ async function main() {
     await clickButton("收藏");
     await clickButton("收藏 1");
     await waitText(markerTitle);
+
+    stage = "导出加密保险库文件";
+    await clickButton("设置");
+    await browser.execute("macos: keys", { keys: ["XCUIKeyboardKeyEnd"] });
+    await clickButton("导出保险库");
+    await browser.execute("macos: keys", { keys: ["XCUIKeyboardKeyTab", "XCUIKeyboardKeyReturn"] });
+    await selectNativeDirectory(process.env.PRIVAULT_TEST_ROOT, "Save");
+    await setNativeFilename("export.pvault");
+    await clickButton("Save");
+    await browser.execute("macos: activateApp", { bundleId });
+    await waitText("加密保险库已导出");
+    await stopSession();
+
+    stage = "在独立工作区创建当前库并导入替换";
+    await startSession(importedConfigDir);
+    await clickButton("创建保险库");
+    await setInput("new-demo-password", masterPassword);
+    await setInput("confirm-demo-password", masterPassword);
+    await clickButton("下一步");
+    await waitText("保存恢复密钥");
+    await clickText("我已离线保存恢复密钥");
+    await clickButton("解锁保险库");
+    await waitText("本地保险库");
+    await clickButton("设置");
+    await browser.execute("macos: keys", { keys: ["XCUIKeyboardKeyEnd"] });
+    await clickButton("导入保险库");
+    await browser.execute("macos: keys", { keys: ["XCUIKeyboardKeyTab", "XCUIKeyboardKeyReturn"] });
+    await selectNativeDirectory(`${process.env.PRIVAULT_TEST_ROOT}/export.pvault`);
+    await browser.execute("macos: activateApp", { bundleId });
+    await browser.execute("macos: keys", { keys: [...nativeTextKeys(masterPassword), "XCUIKeyboardKeyReturn"] });
+    await waitText("导入完成");
+    await clickButton("返回解锁");
+    await unlock();
+    await waitText(markerTitle);
+    await clickButton("收藏 1");
+    await waitText(markerTitle);
+    const importBackups = readdirSync(`${importedConfigDir}/backups`, { withFileTypes: true });
+    assert(importBackups.some((entry) => entry.isDirectory() && entry.name.startsWith("import-")), "缺少导入前自动备份");
 
     stage = "审计加密文件、配置和备份";
     await auditEncryptedFiles();
