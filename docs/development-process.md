@@ -294,6 +294,7 @@ Task 8 新增生产依赖 `@tauri-apps/api`，用于前端网关调用受限 Rus
 - 发布前检查：无 Git 远程或 tag，测试产物、构建产物和真实保险库均未被跟踪；仓库内未发现私钥、token 或真实凭据模式。
 - Tauri 直接生成的 DMG 内部应用未通过严格签名校验，未发布。改为先执行 `npx tauri build --bundles app` 并 ad-hoc 重签，再用 `diskutil image create from --format UDZO` 生成 DMG。
 - 最终 `Privault_0.1.0_aarch64.dmg` 为 5.8 MiB，挂载后内部应用严格签名校验和版本检查通过；SHA-256 为 `33fd71840bfd1f306db5466e99f06b774668f36b10aa1df59d8f35deb2095597`。
+- 已创建私有仓库 `fengmingli/privault` 并推送 `main`；tag `v0.1.0` 和 GitHub Release 已发布，DMG 资产下载后校验 SHA-256 一致。
 
 ## 4. 验证记录
 
