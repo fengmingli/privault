@@ -94,6 +94,7 @@ jobs:
         shell: pwsh
         run: |
           winget install gerardog.gsudo --accept-source-agreements --accept-package-agreements
+          Add-Content -Path $env:GITHUB_PATH -Value "$env:ProgramFiles\gsudo"
           icacls "$env:GITHUB_WORKSPACE" /grant "Everyone:(OI)(CI)F"
 
       - name: Prepare isolated GUI environment
@@ -116,7 +117,10 @@ jobs:
 
       - name: Run isolated Windows GUI acceptance
         shell: pwsh
-        run: sudo --integrity Medium node ./tests/windows-smoke.mjs
+        run: |
+          $gsudo = Join-Path $env:ProgramFiles 'gsudo\gsudo.exe'
+          if (-not (Test-Path $gsudo)) { throw 'gsudo executable was not found' }
+          & $gsudo --integrity Medium node ./tests/windows-smoke.mjs
 
       - name: Upload Windows GUI evidence
         if: always()
