@@ -73,28 +73,28 @@ jobs:
       - name: Install matching Edge WebDriver
         shell: pwsh
         run: |
-          $roots = @(
-            'C:\Program Files (x86)\Microsoft\EdgeWebView\Application',
-            'C:\Program Files\Microsoft\EdgeWebView\Application',
-            'C:\Program Files (x86)\Microsoft\Edge\Application',
-            'C:\Program Files\Microsoft\Edge\Application'
-          ) | Where-Object { Test-Path $_ }
-          if ($roots.Count -eq 0) { throw 'Microsoft Edge or WebView2 installation was not found' }
-          $versionDirectories = @()
-          foreach ($root in $roots) {
-            $versionDirectories += Get-ChildItem -Path $root -Directory |
-              Where-Object { $_.Name -match '^\d+\.' } |
-              ForEach-Object { [PSCustomObject]@{ Version = [version]$_.Name; Path = $_.FullName } }
-          }
-          $version = $versionDirectories | Sort-Object Version -Descending | Select-Object -First 1
-          if (-not $version) { throw 'Unable to determine Edge/WebView2 version' }
-          Write-Host "Using browser version $($version.Version)"
+          $client = 'Microsoft\EdgeUpdate\Clients\{F3017226-FE2A-4295-8BDF-00C3A9A7E4C5}'
+          $version = @(
+            "HKLM:\SOFTWARE\WOW6432Node\$client",
+            "HKLM:\SOFTWARE\$client",
+            "HKCU:\SOFTWARE\WOW6432Node\$client",
+            "HKCU:\SOFTWARE\$client"
+          ) | ForEach-Object { (Get-ItemProperty -Path $_ -ErrorAction SilentlyContinue).pv } |
+            Where-Object { $_ } | Select-Object -First 1
+          if (-not $version) { throw 'No WebView2 runtime found in the registry' }
+          Write-Host "Using WebView2 runtime version $version"
           $zip = Join-Path $env:RUNNER_TEMP 'edgedriver_win64.zip'
           $destination = Join-Path $env:RUNNER_TEMP 'edgedriver'
-          Invoke-WebRequest -Uri "https://msedgedriver.microsoft.com/$($version.Version)/edgedriver_win64.zip" -OutFile $zip
+          Invoke-WebRequest -Uri "https://msedgedriver.microsoft.com/$version/edgedriver_win64.zip" -OutFile $zip
           Expand-Archive -Path $zip -DestinationPath $destination -Force
           if (-not (Test-Path (Join-Path $destination 'msedgedriver.exe'))) { throw 'Edge WebDriver was not downloaded' }
           Add-Content -Path $env:GITHUB_PATH -Value $destination
+
+      - name: Allow WebView2 debugging at medium integrity
+        shell: pwsh
+        run: |
+          winget install gerardog.gsudo --accept-source-agreements --accept-package-agreements
+          icacls "$env:GITHUB_WORKSPACE" /grant "Everyone:(OI)(CI)F"
 
       - name: Prepare isolated GUI environment
         shell: pwsh
@@ -116,7 +116,7 @@ jobs:
 
       - name: Run isolated Windows GUI acceptance
         shell: pwsh
-        run: node ./tests/windows-smoke.mjs
+        run: sudo --integrity Medium node ./tests/windows-smoke.mjs
 
       - name: Upload Windows GUI evidence
         if: always()
