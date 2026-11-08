@@ -108,7 +108,6 @@ async function startSession(configOverride) {
         browserName: "webview2",
         "ms:edgeOptions": { args: [] },
       },
-      firstMatch: [],
     },
   });
 }
