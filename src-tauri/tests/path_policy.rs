@@ -23,6 +23,7 @@ impl FakeInspector {
         self.space = space;
         self
     }
+    #[cfg(unix)]
     fn with_network_path(mut self, path: &Path) -> Self {
         self.network_paths.push(path.to_path_buf());
         self
