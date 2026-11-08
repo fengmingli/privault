@@ -94,12 +94,11 @@ jobs:
         shell: pwsh
         run: |
           winget install gerardog.gsudo --accept-source-agreements --accept-package-agreements
-          $wingetLinks = Join-Path $env:LOCALAPPDATA 'Microsoft\WinGet\Links'
-          Add-Content -Path $env:GITHUB_PATH -Value $wingetLinks
-          if (
-            -not (Test-Path (Join-Path $wingetLinks 'gsudo.exe')) -and
-            -not (Test-Path (Join-Path $wingetLinks 'sudo.exe'))
-          ) { throw 'gsudo was not found in the WinGet links directory' }
+          $gsudoDirectory = Join-Path $env:ProgramFiles 'gsudo\Current'
+          Add-Content -Path $env:GITHUB_PATH -Value $gsudoDirectory
+          if (-not (Test-Path (Join-Path $gsudoDirectory 'gsudo.exe'))) {
+            throw 'gsudo was not found in Program Files\gsudo\Current'
+          }
           icacls "$env:GITHUB_WORKSPACE" /grant "Everyone:(OI)(CI)F"
 
       - name: Prepare isolated GUI environment
@@ -123,13 +122,8 @@ jobs:
       - name: Run isolated Windows GUI acceptance
         shell: pwsh
         run: |
-          $wingetLinks = Join-Path $env:LOCALAPPDATA 'Microsoft\WinGet\Links'
-          $gsudo = @(
-            (Join-Path $wingetLinks 'gsudo.exe'),
-            (Join-Path $wingetLinks 'sudo.exe'),
-            (Join-Path $env:ProgramFiles 'gsudo\gsudo.exe')
-          ) | Where-Object { Test-Path $_ } | Select-Object -First 1
-          if (-not $gsudo) { throw 'gsudo executable was not found' }
+          $gsudo = Join-Path $env:ProgramFiles 'gsudo\Current\gsudo.exe'
+          if (-not (Test-Path $gsudo)) { throw 'gsudo executable was not found' }
           Write-Host "Using gsudo: $gsudo"
           & $gsudo --integrity Medium node ./tests/windows-smoke.mjs
 
