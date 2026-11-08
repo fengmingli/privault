@@ -4,8 +4,7 @@ use std::os::windows::ffi::OsStrExt;
 use std::path::Path;
 use std::process::Command;
 use windows_sys::Win32::Storage::FileSystem::{
-    GetDiskFreeSpaceExW, GetDriveTypeW, GetVolumePathNameW, DRIVE_FIXED, DRIVE_REMOTE,
-    DRIVE_REMOVABLE,
+    GetDiskFreeSpaceExW, GetDriveTypeW, GetVolumePathNameW,
 };
 
 pub struct SystemVolumeInspector;
@@ -31,10 +30,11 @@ fn volume_root(path: &Path) -> VaultResult<Vec<u16>> {
 impl VolumeInspector for SystemVolumeInspector {
     fn kind(&self, path: &Path) -> VaultResult<VolumeKind> {
         let root = volume_root(path)?;
-        match unsafe { GetDriveTypeW(root.as_ptr()) } {
-            DRIVE_FIXED => Ok(VolumeKind::Fixed),
-            DRIVE_REMOVABLE => Ok(VolumeKind::Removable),
-            DRIVE_REMOTE => Ok(VolumeKind::Network),
+        let drive_type = unsafe { GetDriveTypeW(root.as_ptr()) };
+        match drive_type {
+            3 => Ok(VolumeKind::Fixed),
+            2 => Ok(VolumeKind::Removable),
+            4 => Ok(VolumeKind::Network),
             _ => Ok(VolumeKind::Network),
         }
     }
