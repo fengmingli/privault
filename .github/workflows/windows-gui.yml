@@ -1,0 +1,133 @@
+name: Windows GUI acceptance
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/windows-gui.yml"
+      - "package.json"
+      - "package-lock.json"
+      - "src/**"
+      - "src-tauri/**"
+      - "tests/windows-smoke.mjs"
+      - "vite.config.ts"
+
+permissions:
+  contents: read
+
+jobs:
+  windows-gui:
+    runs-on: windows-latest
+    timeout-minutes: 70
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: "npm"
+
+      - name: Use stable Rust
+        shell: pwsh
+        run: |
+          rustup update stable
+          rustup default stable
+
+      - name: Cache Windows GUI Cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~\.cargo\registry
+            ~\.cargo\git
+            src-tauri\target
+          key: windows-gui-cargo-${{ hashFiles('src-tauri/Cargo.lock') }}
+          restore-keys: |
+            windows-gui-cargo-
+
+      - name: Cache tauri-driver
+        uses: actions/cache@v4
+        with:
+          path: ~\.cargo\bin\tauri-driver.exe
+          key: tauri-driver-2.1.0-windows-x64
+
+      - name: Install Windows crypto build tools
+        shell: pwsh
+        run: |
+          choco install nasm strawberryperl -y --no-progress
+          Add-Content -Path $env:GITHUB_PATH -Value 'C:\Program Files\NASM'
+          Add-Content -Path $env:GITHUB_PATH -Value 'C:\Strawberry\perl\bin'
+
+      - name: Install npm dependencies
+        shell: pwsh
+        run: npm ci --registry=https://registry.npmjs.org
+
+      - name: Install tauri-driver
+        shell: pwsh
+        run: if (-not (Test-Path "$env:USERPROFILE\.cargo\bin\tauri-driver.exe")) { cargo install tauri-driver --locked }
+
+      - name: Build isolated debug application
+        shell: pwsh
+        run: npx tauri build --debug --no-bundle --ci
+
+      - name: Install matching Edge WebDriver
+        shell: pwsh
+        run: |
+          $roots = @(
+            'C:\Program Files (x86)\Microsoft\EdgeWebView\Application',
+            'C:\Program Files\Microsoft\EdgeWebView\Application',
+            'C:\Program Files (x86)\Microsoft\Edge\Application',
+            'C:\Program Files\Microsoft\Edge\Application'
+          ) | Where-Object { Test-Path $_ }
+          if ($roots.Count -eq 0) { throw 'Microsoft Edge or WebView2 installation was not found' }
+          $versionDirectories = @()
+          foreach ($root in $roots) {
+            $versionDirectories += Get-ChildItem -Path $root -Directory |
+              Where-Object { $_.Name -match '^\d+\.' } |
+              ForEach-Object { [PSCustomObject]@{ Version = [version]$_.Name; Path = $_.FullName } }
+          }
+          $version = $versionDirectories | Sort-Object Version -Descending | Select-Object -First 1
+          if (-not $version) { throw 'Unable to determine Edge/WebView2 version' }
+          Write-Host "Using browser version $($version.Version)"
+          $zip = Join-Path $env:RUNNER_TEMP 'edgedriver_win64.zip'
+          $destination = Join-Path $env:RUNNER_TEMP 'edgedriver'
+          Invoke-WebRequest -Uri "https://msedgedriver.microsoft.com/$($version.Version)/edgedriver_win64.zip" -OutFile $zip
+          Expand-Archive -Path $zip -DestinationPath $destination -Force
+          if (-not (Test-Path (Join-Path $destination 'msedgedriver.exe'))) { throw 'Edge WebDriver was not downloaded' }
+          Add-Content -Path $env:GITHUB_PATH -Value $destination
+
+      - name: Prepare isolated GUI environment
+        shell: pwsh
+        run: |
+          $root = Join-Path $env:RUNNER_TEMP 'privault-windows-smoke'
+          $paths = @(
+            (Join-Path $root 'vault'),
+            (Join-Path $root 'migrated'),
+            (Join-Path $root 'export'),
+            (Join-Path $root 'imported')
+          )
+          New-Item -ItemType Directory -Force -Path $paths | Out-Null
+          "PRIVAULT_WINDOWS_TEST_ROOT=$root" >> $env:GITHUB_ENV
+          "PRIVAULT_CONFIG_DIR=$(Join-Path $root 'vault')" >> $env:GITHUB_ENV
+          "PRIVAULT_MIGRATION_DIR=$(Join-Path $root 'migrated')" >> $env:GITHUB_ENV
+          "PRIVAULT_EXPORT_DIR=$(Join-Path $root 'export')" >> $env:GITHUB_ENV
+          "PRIVAULT_IMPORT_DIR=$(Join-Path $root 'imported')" >> $env:GITHUB_ENV
+          "PRIVAULT_WINDOWS_APP_PATH=$PWD\src-tauri\target\debug\privault-ui" >> $env:GITHUB_ENV
+
+      - name: Run isolated Windows GUI acceptance
+        shell: pwsh
+        run: node ./tests/windows-smoke.mjs
+
+      - name: Upload Windows GUI evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Privault-windows-gui-evidence
+          path: |
+            test-results/*.png
+            test-results/*.xml
+            test-results/*.txt
+            test-results/windows-tauri-driver.log
+            test-results/windows-tauri-driver-exit.txt
+          if-no-files-found: ignore
+          retention-days: 14
