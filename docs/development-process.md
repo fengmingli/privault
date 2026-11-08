@@ -296,6 +296,14 @@ Task 8 新增生产依赖 `@tauri-apps/api`，用于前端网关调用受限 Rus
 - 最终 `Privault_0.1.0_aarch64.dmg` 为 5.8 MiB，挂载后内部应用严格签名校验和版本检查通过；SHA-256 为 `33fd71840bfd1f306db5466e99f06b774668f36b10aa1df59d8f35deb2095597`。
 - 已创建私有仓库 `fengmingli/privault` 并推送 `main`；tag `v0.1.0` 和 GitHub Release 已发布，DMG 资产下载后校验 SHA-256 一致。
 
+### 3.17 2026-11-02：Windows CI 基线与安装包构建
+
+- 新增 Windows 实施计划 `47e24d2`；新增 `scripts/verify-windows.ps1`、GitHub Actions `windows-latest` workflow 和 `platform_windows` 权限测试 `6858759`。
+- 首次真实 Windows runner 暴露并修复：缺少 `icon.ico`、`windows-sys 0.61` 驱动器常量路径、Windows 下 `metadata.rs`/`migration.rs` 平台导入、目录测试 helper 平台差异、目标目录尚不存在时必须从卷根查询可用空间、以及 Windows `FlushFileBuffers` 需要写句柄。相关提交：`52e399a`、`38f09f3`、`d561dc9`、`af4a44b`、`9ed0006`、`05a7e1e`。
+- `secure_directory` 已改为 `icacls /inheritance:r /grant:r`，CI 中的新增权限测试通过。
+- 绿色 Windows CI：run `42488345151`，前端 113 个测试、Chrome E2E 7 个、Rust 55 个测试全部通过；生成 `Privault_0.1.0_x64-setup.exe`，4.1 MiB，SHA-256 `0cf4f6a1624b365bb235901bf9143552b09543ff1a3f592b189c724f5ec6f78f`；本机重新下载 artifact 后哈希一致。
+- 该产物来自 `main`，不是 tag 发布产物；Windows GUI 桌面闭环仍未运行，因此不发布 Windows 安装包，也继续不宣称 Windows 正式支持。
+
 ## 4. 验证记录
 
 最近一次完整验证（2026-11-01，含真实桌面和收藏）：
