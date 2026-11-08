@@ -7,7 +7,7 @@ use crate::path_policy::validate_destination;
 use crate::platform::{secure_directory, SystemVolumeInspector};
 use crate::storage::{open_database, verify_integrity};
 use crate::vault::{SessionState, VaultManager};
-use std::fs::{self, File};
+use std::fs::{self, File, OpenOptions};
 use std::path::{Path, PathBuf};
 
 pub trait MigrationFs: Send + Sync {
@@ -33,7 +33,8 @@ impl MigrationFs for StdMigrationFs {
     }
 
     fn sync_file(&self, path: &Path) -> VaultResult<()> {
-        File::open(path)?.sync_all()?;
+        // Windows FlushFileBuffers requires a writable handle; opening read-only fails there.
+        OpenOptions::new().write(true).open(path)?.sync_all()?;
         Ok(())
     }
 
