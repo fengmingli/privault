@@ -40,12 +40,12 @@ impl VolumeInspector for SystemVolumeInspector {
     }
 
     fn available_bytes(&self, path: &Path) -> VaultResult<u64> {
-        let path = wide(path);
+        let root = volume_root(path)?;
         let mut available = 0_u64;
         let mut total = 0_u64;
         let mut free = 0_u64;
         let success =
-            unsafe { GetDiskFreeSpaceExW(path.as_ptr(), &mut available, &mut total, &mut free) };
+            unsafe { GetDiskFreeSpaceExW(root.as_ptr(), &mut available, &mut total, &mut free) };
         if success == 0 {
             return Err(VaultError::new(
                 ErrorCode::PathUnavailable,
