@@ -105,13 +105,8 @@ jobs:
         shell: pwsh
         run: |
           $root = Join-Path $env:RUNNER_TEMP 'privault-windows-smoke'
-          $paths = @(
-            (Join-Path $root 'vault'),
-            (Join-Path $root 'migrated'),
-            (Join-Path $root 'export'),
-            (Join-Path $root 'imported')
-          )
-          New-Item -ItemType Directory -Force -Path $paths | Out-Null
+          # Directories are deliberately created by the medium-integrity Node process.
+          # Creating them from this elevated step would mark them inaccessible to WebView2 acceptance.
           "PRIVAULT_WINDOWS_TEST_ROOT=$root" >> $env:GITHUB_ENV
           "PRIVAULT_CONFIG_DIR=$(Join-Path $root 'vault')" >> $env:GITHUB_ENV
           "PRIVAULT_MIGRATION_DIR=$(Join-Path $root 'migrated')" >> $env:GITHUB_ENV
