@@ -56,10 +56,33 @@ impl VolumeInspector for SystemVolumeInspector {
     }
 }
 
+fn current_identity() -> VaultResult<String> {
+    let output = Command::new("whoami")
+        .output()
+        .map_err(|_| VaultError::new(ErrorCode::PathUnavailable, "无法确定当前用户"))?;
+    if !output.status.success() {
+        return Err(VaultError::new(
+            ErrorCode::PathUnavailable,
+            "无法确定当前用户",
+        ));
+    }
+    let identity = String::from_utf8_lossy(&output.stdout).trim().to_owned();
+    if identity.is_empty() {
+        return Err(VaultError::new(
+            ErrorCode::PathUnavailable,
+            "无法确定当前用户",
+        ));
+    }
+    Ok(identity)
+}
+
 pub fn secure_directory(path: &Path) -> VaultResult<()> {
+    let identity = current_identity()?;
     let status = Command::new("icacls")
         .arg(path)
-        .args(["/setacl", "D:P(A;;FA;;;OW)"])
+        .arg("/inheritance:r")
+        .arg("/grant:r")
+        .arg(format!("{identity}:(OI)(CI)F"))
         .status()
         .map_err(|_| VaultError::new(ErrorCode::PathUnavailable, "无法设置目录权限"))?;
     if status.success() {
