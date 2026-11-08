@@ -7,7 +7,9 @@ use crate::path_policy::validate_destination;
 use crate::platform::{secure_directory, SystemVolumeInspector};
 use crate::storage::{open_database, verify_integrity};
 use crate::vault::{SessionState, VaultManager};
-use std::fs::{self, File, OpenOptions};
+#[cfg(unix)]
+use std::fs::File;
+use std::fs::{self, OpenOptions};
 use std::path::{Path, PathBuf};
 
 pub trait MigrationFs: Send + Sync {
