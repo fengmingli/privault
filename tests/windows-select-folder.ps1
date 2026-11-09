@@ -8,6 +8,11 @@ Add-Type -AssemblyName UIAutomationClient
 Add-Type -AssemblyName UIAutomationTypes
 Add-Type -AssemblyName System.Windows.Forms
 
+function ConvertTo-SendKeysText {
+  param([string]$Text)
+  return $Text -replace '([+^%~(){}])', '{$1}'
+}
+
 $appProcesses = @(Get-Process -Name 'privault-ui' -ErrorAction SilentlyContinue)
 if ($appProcesses.Count -eq 0) {
   throw 'The Privault application process was not found.'
@@ -34,49 +39,12 @@ if (-not $dialog) {
   throw 'The native folder dialog owned by Privault was not found.'
 }
 
-$editCondition = New-Object Windows.Automation.PropertyCondition(
-  [Windows.Automation.AutomationElement]::ControlTypeProperty,
-  [Windows.Automation.ControlType]::Edit
-)
-$edits = $dialog.FindAll([Windows.Automation.TreeScope]::Subtree, $editCondition)
-$targetEdit = $null
-$targetValuePattern = $null
-foreach ($edit in $edits) {
-  $name = $edit.Current.Name
-  $focusable = $edit.Current.IsKeyboardFocusable
-  $valuePattern = $null
-  $writable = $false
-  if ($edit.TryGetCurrentPattern([Windows.Automation.ValuePattern]::Pattern, [ref]$valuePattern)) {
-    $writable = -not $valuePattern.Current.IsReadOnly
-  }
-  Write-Output "EDIT name='$name' class='$($edit.Current.ClassName)' focusable=$focusable writable=$writable"
-  if ($focusable -and $writable -and $name -match 'Folder|File name|File Name|文件夹|文件名') {
-    $targetEdit = $edit
-    $targetValuePattern = $valuePattern
-    break
-  }
-}
-if (-not $targetEdit) {
-  foreach ($edit in $edits) {
-    $name = $edit.Current.Name
-    $valuePattern = $null
-    if (
-      $edit.Current.IsKeyboardFocusable -and
-      $name -notmatch 'Search|搜索' -and
-      $edit.TryGetCurrentPattern([Windows.Automation.ValuePattern]::Pattern, [ref]$valuePattern) -and
-      -not $valuePattern.Current.IsReadOnly
-    ) {
-      $targetEdit = $edit
-      $targetValuePattern = $valuePattern
-      break
-    }
-  }
-}
-if (-not $targetEdit) {
-  throw 'The native folder dialog edit box was not found.'
-}
-
-$targetValuePattern.SetValue($Directory)
+$dialog.SetFocus()
+[System.Windows.Forms.SendKeys]::SendWait('%d')
+Start-Sleep -Milliseconds 250
+[System.Windows.Forms.SendKeys]::SendWait((ConvertTo-SendKeysText $Directory))
+[System.Windows.Forms.SendKeys]::SendWait('{ENTER}')
+Start-Sleep -Milliseconds 800
 
 $buttonCondition = New-Object Windows.Automation.PropertyCondition(
   [Windows.Automation.AutomationElement]::ControlTypeProperty,
@@ -99,9 +67,6 @@ if ($selectButton) {
     throw 'The native folder dialog select button cannot be invoked.'
   }
   $invokePattern.Invoke()
-} else {
-  $targetEdit.SetFocus()
-  [System.Windows.Forms.SendKeys]::SendWait('{ENTER}')
 }
 
 Write-Output "Selected folder: $Directory"
