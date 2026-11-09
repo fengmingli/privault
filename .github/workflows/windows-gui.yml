@@ -11,6 +11,7 @@ on:
       - "src/**"
       - "src-tauri/**"
       - "tests/windows-smoke.mjs"
+      - "tests/windows-select-folder.ps1"
       - "vite.config.ts"
 
 permissions:

@@ -61,7 +61,8 @@ function selectNativeFolder(directory) {
     { encoding: "utf8", timeout: 20_000 },
   );
   if (result.status !== 0) {
-    throw new Error(`无法选择 Windows 目录：${result.stderr.trim() || result.stdout.trim()}`);
+    const details = [result.stdout.trim(), result.stderr.trim()].filter(Boolean).join("\n");
+    throw new Error(`无法选择 Windows 目录：${details || `exit ${result.status}`}`);
   }
 }
 

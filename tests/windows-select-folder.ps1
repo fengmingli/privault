@@ -40,20 +40,34 @@ $editCondition = New-Object Windows.Automation.PropertyCondition(
 )
 $edits = $dialog.FindAll([Windows.Automation.TreeScope]::Subtree, $editCondition)
 $targetEdit = $null
+$targetValuePattern = $null
 foreach ($edit in $edits) {
   $name = $edit.Current.Name
   $focusable = $edit.Current.IsKeyboardFocusable
-  Write-Output "EDIT name='$name' class='$($edit.Current.ClassName)' focusable=$focusable"
-  if ($focusable -and $name -match 'Folder|File name|File Name|文件夹|文件名') {
+  $valuePattern = $null
+  $writable = $false
+  if ($edit.TryGetCurrentPattern([Windows.Automation.ValuePattern]::Pattern, [ref]$valuePattern)) {
+    $writable = -not $valuePattern.Current.IsReadOnly
+  }
+  Write-Output "EDIT name='$name' class='$($edit.Current.ClassName)' focusable=$focusable writable=$writable"
+  if ($focusable -and $writable -and $name -match 'Folder|File name|File Name|文件夹|文件名') {
     $targetEdit = $edit
+    $targetValuePattern = $valuePattern
     break
   }
 }
 if (-not $targetEdit) {
   foreach ($edit in $edits) {
     $name = $edit.Current.Name
-    if ($edit.Current.IsKeyboardFocusable -and $name -notmatch 'Search|搜索') {
+    $valuePattern = $null
+    if (
+      $edit.Current.IsKeyboardFocusable -and
+      $name -notmatch 'Search|搜索' -and
+      $edit.TryGetCurrentPattern([Windows.Automation.ValuePattern]::Pattern, [ref]$valuePattern) -and
+      -not $valuePattern.Current.IsReadOnly
+    ) {
       $targetEdit = $edit
+      $targetValuePattern = $valuePattern
       break
     }
   }
@@ -62,11 +76,7 @@ if (-not $targetEdit) {
   throw 'The native folder dialog edit box was not found.'
 }
 
-$valuePattern = $null
-if (-not $targetEdit.TryGetCurrentPattern([Windows.Automation.ValuePattern]::Pattern, [ref]$valuePattern)) {
-  throw 'The native folder dialog edit box does not accept a value.'
-}
-$valuePattern.SetValue($Directory)
+$targetValuePattern.SetValue($Directory)
 
 $buttonCondition = New-Object Windows.Automation.PropertyCondition(
   [Windows.Automation.AutomationElement]::ControlTypeProperty,
