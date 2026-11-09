@@ -46,6 +46,25 @@ function sendNativeKeys(keys) {
   );
 }
 
+function selectNativeFolder(directory) {
+  const result = spawnSync(
+    "powershell.exe",
+    [
+      "-NoProfile",
+      "-ExecutionPolicy",
+      "Bypass",
+      "-File",
+      path.resolve("tests/windows-select-folder.ps1"),
+      "-Directory",
+      directory,
+    ],
+    { encoding: "utf8", timeout: 20_000 },
+  );
+  if (result.status !== 0) {
+    throw new Error(`无法选择 Windows 目录：${result.stderr.trim() || result.stdout.trim()}`);
+  }
+}
+
 function killProcessTree(pid) {
   if (!pid) return;
   spawnSync("taskkill", ["/PID", String(pid), "/T", "/F"], { stdio: "ignore" });
@@ -205,12 +224,7 @@ async function migrateStorage() {
   await clickButton("设置");
   await clickButton("更改存储目录");
   await sleep(1_500);
-  // Alt+N focuses the File name edit in the Windows common folder picker.
-  // A full directory path submitted there selects that folder and closes the dialog.
-  sendNativeKeys("%n");
-  await sleep(300);
-  sendNativeKeys(realpathSync(migrationDir));
-  sendNativeKeys("{ENTER}");
+  selectNativeFolder(realpathSync(migrationDir));
   await waitText("输入主密码以验证目标副本");
   await setValue("#migration-master-password", masterPassword);
   await clickButton("验证并迁移");
