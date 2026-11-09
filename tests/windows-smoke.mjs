@@ -64,6 +64,11 @@ function selectNativeFolder(directory) {
     const details = [result.stdout.trim(), result.stderr.trim()].filter(Boolean).join("\n");
     throw new Error(`无法选择 Windows 目录：${details || `exit ${result.status}`}`);
   }
+  mkdirSync(path.dirname(driverLogPath), { recursive: true });
+  writeFileSync(
+    "test-results/windows-folder-dialog.txt",
+    `${new Date().toISOString()}\n${result.stdout}\n${result.stderr}\n`,
+  );
 }
 
 function killProcessTree(pid) {
