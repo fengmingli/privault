@@ -128,7 +128,10 @@ async function element(selector) {
 
 async function clickButton(label, scope) {
   const root = scope ?? browser;
-  const button = await root.$(`//button[normalize-space()=${xpathLiteral(label)}]`);
+  const literal = xpathLiteral(label);
+  const button = await root.$(
+    `//button[@aria-label=${literal} or @title=${literal} or normalize-space()=${literal}]`,
+  );
   await button.waitForExist({ timeout: 20_000 });
   await button.click();
 }
@@ -170,7 +173,12 @@ async function createVault(configOverride) {
 async function addFavoriteMarker() {
   stage = "录入并收藏标记条目";
   await clickButton("新建");
-  await clickButton("登录信息");
+  const typePicker = await element("//dialog[@open]");
+  const loginKind = await typePicker.$(
+    `//button[.//span[normalize-space()=${xpathLiteral("登录信息")}]]`,
+  );
+  await loginKind.waitForExist({ timeout: 20_000 });
+  await loginKind.click();
   await setValue("#entry-title", markerTitle);
   await setValue("#entry-username", "windows@example.com");
   await setValue("#entry-password", "Windows-Entry-Pass1!");
