@@ -205,11 +205,11 @@ async function migrateStorage() {
   await clickButton("设置");
   await clickButton("更改存储目录");
   await sleep(1_500);
-  sendNativeKeys("^l");
+  // Alt+N focuses the File name edit in the Windows common folder picker.
+  // A full directory path submitted there selects that folder and closes the dialog.
+  sendNativeKeys("%n");
   await sleep(300);
   sendNativeKeys(realpathSync(migrationDir));
-  sendNativeKeys("{ENTER}");
-  await sleep(1_000);
   sendNativeKeys("{ENTER}");
   await waitText("输入主密码以验证目标副本");
   await setValue("#migration-master-password", masterPassword);
