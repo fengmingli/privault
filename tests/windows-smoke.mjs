@@ -189,7 +189,7 @@ async function addFavoriteMarker() {
   );
   await favorite.waitForExist({ timeout: 20_000 });
   await favorite.click();
-  await waitText("收藏 1");
+  await waitText("取消收藏");
 }
 
 async function restartAndUnlock(configOverride) {
