@@ -7,6 +7,17 @@ $ErrorActionPreference = 'Stop'
 Add-Type -AssemblyName UIAutomationClient
 Add-Type -AssemblyName UIAutomationTypes
 Add-Type -AssemblyName System.Windows.Forms
+Add-Type -TypeDefinition @'
+using System;
+using System.Runtime.InteropServices;
+public static class PrivaultNativeMethods {
+  [DllImport("user32.dll")]
+  public static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
+
+  [DllImport("user32.dll")]
+  public static extern bool SetForegroundWindow(IntPtr hWnd);
+}
+'@
 
 function ConvertTo-SendKeysText {
   param([string]$Text)
@@ -31,15 +42,24 @@ $dialogs = $root.FindAll([Windows.Automation.TreeScope]::Children, $dialogCondit
 $dialog = $null
 foreach ($candidate in $dialogs) {
   if ($appProcessIds.ContainsKey([int]$candidate.Current.ProcessId)) {
-    $dialog = $candidate
-    break
+    Write-Output "DIALOG name='$($candidate.Current.Name)' process=$($candidate.Current.ProcessId) handle=$($candidate.Current.NativeWindowHandle) offscreen=$($candidate.Current.IsOffscreen)"
+    if (-not $dialog -and $candidate.Current.NativeWindowHandle -ne 0) {
+      $dialog = $candidate
+    }
+    if ($candidate.Current.Name -match 'Folder|Open|Browse|文件夹|打开' -and $candidate.Current.NativeWindowHandle -ne 0) {
+      $dialog = $candidate
+      break
+    }
   }
 }
 if (-not $dialog) {
   throw 'The native folder dialog owned by Privault was not found.'
 }
 
-$dialog.SetFocus()
+$dialogHandle = [IntPtr]$dialog.Current.NativeWindowHandle
+[PrivaultNativeMethods]::ShowWindow($dialogHandle, 9) | Out-Null
+[PrivaultNativeMethods]::SetForegroundWindow($dialogHandle) | Out-Null
+Start-Sleep -Milliseconds 250
 [System.Windows.Forms.SendKeys]::SendWait('%d')
 Start-Sleep -Milliseconds 250
 [System.Windows.Forms.SendKeys]::SendWait((ConvertTo-SendKeysText $Directory))
