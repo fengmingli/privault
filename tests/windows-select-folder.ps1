@@ -42,7 +42,9 @@ $edits = $dialog.FindAll([Windows.Automation.TreeScope]::Subtree, $editCondition
 $targetEdit = $null
 foreach ($edit in $edits) {
   $name = $edit.Current.Name
-  if ($name -match 'Folder|File name|File Name|文件夹|文件名') {
+  $focusable = $edit.Current.IsKeyboardFocusable
+  Write-Output "EDIT name='$name' class='$($edit.Current.ClassName)' focusable=$focusable"
+  if ($focusable -and $name -match 'Folder|File name|File Name|文件夹|文件名') {
     $targetEdit = $edit
     break
   }
@@ -50,7 +52,7 @@ foreach ($edit in $edits) {
 if (-not $targetEdit) {
   foreach ($edit in $edits) {
     $name = $edit.Current.Name
-    if ($name -notmatch 'Search|搜索') {
+    if ($edit.Current.IsKeyboardFocusable -and $name -notmatch 'Search|搜索') {
       $targetEdit = $edit
       break
     }
@@ -60,7 +62,6 @@ if (-not $targetEdit) {
   throw 'The native folder dialog edit box was not found.'
 }
 
-$targetEdit.SetFocus()
 $valuePattern = $null
 if (-not $targetEdit.TryGetCurrentPattern([Windows.Automation.ValuePattern]::Pattern, [ref]$valuePattern)) {
   throw 'The native folder dialog edit box does not accept a value.'
@@ -75,6 +76,7 @@ $buttons = $dialog.FindAll([Windows.Automation.TreeScope]::Subtree, $buttonCondi
 $selectButton = $null
 foreach ($button in $buttons) {
   $name = $button.Current.Name
+  Write-Output "BUTTON name='$name' class='$($button.Current.ClassName)'"
   if ($name -match '^(Select Folder|Open|选择文件夹|打开)$') {
     $selectButton = $button
     break
