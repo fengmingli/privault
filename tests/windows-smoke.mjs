@@ -159,6 +159,10 @@ async function createVault(configOverride) {
   await setValue("#confirm-demo-password", masterPassword);
   await clickButton("下一步");
   await waitText(originalRecoveryNotice);
+  const recoveryConfirmed = await element(
+    '//label[contains(normalize-space(), "我已离线保存恢复密钥")]/input',
+  );
+  await recoveryConfirmed.click();
   await clickButton("解锁保险库");
   await waitText("本地保险库");
 }
